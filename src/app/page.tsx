@@ -1,65 +1,189 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { trpc } from '@/lib/trpc/client';
+import { MainLayout } from '@/components/layout';
+import { XPDisplay, StreakDisplay, LevelProgress } from '@/components/gamification';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { BookOpen, Brain, Code, ChevronRight, Trophy, Target, Zap } from 'lucide-react';
+
+// Hardcoded user ID for demo - in real app this comes from auth
+const TEST_USER_ID = '11111111-1111-1111-1111-111111111111';
+
+export default function Dashboard() {
+  const { data: domains, isLoading: domainsLoading } = trpc.course.getDomains.useQuery();
+  const { data: profile, isLoading: profileLoading } = trpc.gamification.getProfile.useQuery(undefined, {
+    context: { headers: { 'x-user-id': TEST_USER_ID } },
+  });
+  const { data: achievements } = trpc.gamification.getAchievements.useQuery(undefined, {
+    context: { headers: { 'x-user-id': TEST_USER_ID } },
+  });
+
+  const domainIcons: Record<string, React.ReactNode> = {
+    python: <Code className="h-6 w-6" />,
+    'data-science': <Brain className="h-6 w-6" />,
+    'machine-learning': <Zap className="h-6 w-6" />,
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <MainLayout>
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Welcome back!</h1>
+            <p className="text-muted-foreground">Continue your learning journey</p>
+          </div>
+          <div className="flex items-center gap-4">
+            {profile && (
+              <>
+                <XPDisplay xp={profile.totalXp || 0} />
+                <StreakDisplay streak={profile.currentStreak || 0} />
+              </>
+            )}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Stats Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Level</CardTitle>
+              <Trophy className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{profile?.level || 1}</div>
+              <p className="text-xs text-muted-foreground">
+                {profile?.levelProgress?.percentage || 0}% to next level
+              </p>
+              <Progress value={profile?.levelProgress?.percentage || 0} className="mt-2 h-1" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total XP</CardTitle>
+              <Zap className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{(profile?.totalXp || 0).toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">Keep learning to earn more!</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
+              <Target className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{profile?.currentStreak || 0} days</div>
+              <p className="text-xs text-muted-foreground">
+                Longest: {profile?.longestStreak || 0} days
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Achievements</CardTitle>
+              <Trophy className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {achievements?.filter((a: any) => a.earned).length || 0} / {achievements?.length || 0}
+              </div>
+              <p className="text-xs text-muted-foreground">Badges earned</p>
+            </CardContent>
+          </Card>
         </div>
-      </main>
-    </div>
+
+        {/* Level Progress */}
+        {profile && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Level Progress</CardTitle>
+              <CardDescription>
+                {profile.levelProgress?.current || 0} / {profile.levelProgress?.required || 100} XP to Level {(profile.level || 1) + 1}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <LevelProgress
+                level={profile.level || 1}
+                currentXP={profile.levelProgress?.current || 0}
+                requiredXP={profile.levelProgress?.required || 100}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Learning Domains */}
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight mb-4">Explore Domains</h2>
+          {domainsLoading ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader>
+                    <div className="h-6 w-32 bg-muted rounded" />
+                    <div className="h-4 w-48 bg-muted rounded mt-2" />
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {domains?.map((domain: any) => (
+                <Card key={domain.id} className="hover:shadow-lg transition-shadow cursor-pointer group">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                          {domainIcons[domain.slug] || <BookOpen className="h-6 w-6" />}
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">{domain.name}</CardTitle>
+                          <CardDescription>{domain.description}</CardDescription>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Button variant="outline" className="w-full">
+                      Start Learning
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Achievements Preview */}
+        {achievements && achievements.length > 0 && (
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight mb-4">Achievements</h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {achievements.slice(0, 4).map((achievement: any) => (
+                <Card key={achievement.id} className={achievement.earned ? '' : 'opacity-50'}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2">
+                      <Trophy className={`h-5 w-5 ${achievement.earned ? 'text-yellow-500' : 'text-muted-foreground'}`} />
+                      <CardTitle className="text-sm">{achievement.name}</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground">{achievement.description}</p>
+                    <Badge variant={achievement.earned ? 'default' : 'outline'} className="mt-2">
+                      {achievement.earned ? 'Earned' : `+${achievement.xpReward} XP`}
+                    </Badge>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </MainLayout>
   );
 }
