@@ -14,23 +14,32 @@ export function XPDisplay({ xp, recentGain = 0, className }: XPDisplayProps) {
   return (
     <div
       className={cn(
-        'relative flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 rounded-full',
+        'relative flex items-center gap-1.5 px-3 py-1.5 rounded-full',
+        'bg-amber/15 border border-amber/20',
+        'transition-all duration-300 hover:bg-amber/20',
         className
       )}
     >
-      <Zap className="h-4 w-4 text-amber-500" />
-      <span className="font-semibold text-amber-500">{xp.toLocaleString()}</span>
+      <div className="flex items-center justify-center w-5 h-5 rounded-full bg-amber text-white">
+        <Zap className="h-3 w-3" fill="currentColor" />
+      </div>
+      <span className="font-bold text-sm tabular-nums text-amber">
+        {xp.toLocaleString()}
+      </span>
+      <span className="text-xs text-amber/70 font-medium hidden sm:inline">XP</span>
 
       <AnimatePresence>
         {recentGain > 0 && (
-          <motion.span
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: -20 }}
-            exit={{ opacity: 0 }}
-            className="absolute -top-2 right-0 text-sm font-bold text-green-500"
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.5 }}
+            animate={{ opacity: 1, y: -24, scale: 1 }}
+            exit={{ opacity: 0, y: -40, scale: 0.8 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+            className="absolute -top-1 right-0 flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald text-white text-xs font-bold shadow-lg"
           >
+            <Zap className="h-3 w-3" />
             +{recentGain}
-          </motion.span>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure, publicProcedure } from '../trpc';
 import { domains, tracks, courses, modules, lessons, enrollments, progress } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -58,7 +59,7 @@ export const courseRouter = router({
       });
 
       if (!track) {
-        throw new Error('Track not found');
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Track not found' });
       }
 
       const enrollment = await ctx.db.query.enrollments.findFirst({
@@ -90,7 +91,7 @@ export const courseRouter = router({
       });
 
       if (!course) {
-        throw new Error('Course not found');
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Course not found' });
       }
 
       // Get all lesson IDs for this course
@@ -135,7 +136,7 @@ export const courseRouter = router({
       });
 
       if (!lesson) {
-        throw new Error('Lesson not found');
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Lesson not found' });
       }
 
       // Get or create progress
@@ -175,7 +176,7 @@ export const courseRouter = router({
       });
 
       if (existing) {
-        throw new Error('Already enrolled in this track');
+        throw new TRPCError({ code: 'CONFLICT', message: 'Already enrolled in this track' });
       }
 
       const [enrollment] = await ctx.db

@@ -1,6 +1,6 @@
 'use client';
 
-import { Flame } from 'lucide-react';
+import { Flame, Snowflake } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -20,27 +20,61 @@ export function StreakDisplay({
   freezesAvailable = 0,
   className,
 }: StreakDisplayProps) {
+  const isOnFire = streak >= 7;
+
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <div
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 rounded-full cursor-help',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-full cursor-help',
+              'bg-rose/15 border border-rose/20',
+              'transition-all duration-300 hover:bg-rose/20',
+              isOnFire && 'animate-level-glow',
               className
             )}
           >
-            <Flame className="h-4 w-4 text-orange-500" />
-            <span className="font-semibold text-orange-500">{streak}</span>
+            <div className={cn(
+              'flex items-center justify-center',
+              isOnFire && 'animate-streak-fire'
+            )}>
+              <Flame
+                className={cn(
+                  'h-4 w-4 text-rose',
+                  isOnFire && 'drop-shadow-[0_0_8px_var(--rose)]'
+                )}
+                fill={isOnFire ? 'currentColor' : 'none'}
+              />
+            </div>
+            <span className="font-bold text-sm tabular-nums text-rose">
+              {streak}
+            </span>
+            <span className="text-xs text-rose/70 font-medium hidden sm:inline">
+              day{streak !== 1 ? 's' : ''}
+            </span>
           </div>
         </TooltipTrigger>
-        <TooltipContent>
-          <p className="font-medium">{streak} day streak!</p>
-          {freezesAvailable > 0 && (
-            <p className="text-xs text-muted-foreground">
-              {freezesAvailable} freeze(s) available
-            </p>
-          )}
+        <TooltipContent className="p-3">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Flame className="h-5 w-5 text-rose" fill="currentColor" />
+              <span className="font-bold text-base">{streak} day streak!</span>
+            </div>
+            {isOnFire && (
+              <p className="text-xs text-emerald font-medium">
+                You&apos;re on fire! Keep it up!
+              </p>
+            )}
+            {freezesAvailable > 0 && (
+              <div className="flex items-center gap-1.5 pt-1 border-t">
+                <Snowflake className="h-4 w-4 text-cyan" />
+                <span className="text-xs text-muted-foreground">
+                  {freezesAvailable} streak freeze{freezesAvailable !== 1 ? 's' : ''} available
+                </span>
+              </div>
+            )}
+          </div>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

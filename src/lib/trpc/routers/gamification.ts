@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../trpc';
 import { userProfiles, achievements, userAchievements, xpTransactions, streakHistory } from '@/lib/db/schema';
 import { eq, desc, and, gte, sql } from 'drizzle-orm';
@@ -51,7 +52,7 @@ export const gamificationRouter = router({
     });
 
     if (!profile) {
-      throw new Error('Profile not found');
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Profile not found' });
     }
 
     const newStreak = calculateStreak(
