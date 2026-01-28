@@ -15,8 +15,6 @@ import {
   Brain,
 } from 'lucide-react';
 
-const TEST_USER_ID = '11111111-1111-1111-1111-111111111111';
-
 // Mock data for analytics
 const weeklyActivity = [
   { day: 'Mon', minutes: 45, xp: 120 },
@@ -29,9 +27,7 @@ const weeklyActivity = [
 ];
 
 export default function AnalyticsPage() {
-  const { data: profile } = trpc.gamification.getProfile.useQuery(undefined, {
-    context: { headers: { 'x-user-id': TEST_USER_ID } },
-  });
+  const { data: profile } = trpc.gamification.getProfile.useQuery();
 
   const totalWeeklyMinutes = weeklyActivity.reduce((sum, d) => sum + d.minutes, 0);
   const totalWeeklyXP = weeklyActivity.reduce((sum, d) => sum + d.xp, 0);
