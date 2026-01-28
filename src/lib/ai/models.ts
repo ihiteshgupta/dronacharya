@@ -3,22 +3,42 @@ import { ChatOpenAI } from '@langchain/openai';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { aiConfig, ragConfig } from './config';
 
-export const claudeModel = new ChatAnthropic({
-  model: aiConfig.primaryModel,
-  maxTokens: aiConfig.maxTokens,
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-});
+// Lazy-loaded model instances to avoid build-time errors when env vars are not set
+let _claudeModel: ChatAnthropic | null = null;
+let _openaiModel: ChatOpenAI | null = null;
+let _embeddingsInstance: OpenAIEmbeddings | null = null;
 
-export const openaiModel = new ChatOpenAI({
-  model: aiConfig.fallbackModel,
-  maxTokens: aiConfig.maxTokens,
-  openAIApiKey: process.env.OPENAI_API_KEY,
-});
+export function getClaudeModel(): ChatAnthropic {
+  if (!_claudeModel) {
+    _claudeModel = new ChatAnthropic({
+      model: aiConfig.primaryModel,
+      maxTokens: aiConfig.maxTokens,
+      anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+    });
+  }
+  return _claudeModel;
+}
 
-export const embeddings = new OpenAIEmbeddings({
-  model: ragConfig.embeddingModel,
-  openAIApiKey: process.env.OPENAI_API_KEY,
-});
+export function getOpenAIModel(): ChatOpenAI {
+  if (!_openaiModel) {
+    _openaiModel = new ChatOpenAI({
+      model: aiConfig.fallbackModel,
+      maxTokens: aiConfig.maxTokens,
+      openAIApiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return _openaiModel;
+}
+
+export function getEmbeddings(): OpenAIEmbeddings {
+  if (!_embeddingsInstance) {
+    _embeddingsInstance = new OpenAIEmbeddings({
+      model: ragConfig.embeddingModel,
+      openAIApiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return _embeddingsInstance;
+}
 
 export function getModelForAgent(
   agentType: string,
@@ -31,6 +51,7 @@ export function getModelForAgent(
       model: aiConfig.primaryModel,
       maxTokens: aiConfig.maxTokens,
       temperature,
+      anthropicApiKey: process.env.ANTHROPIC_API_KEY,
     });
   }
 
@@ -38,5 +59,6 @@ export function getModelForAgent(
     model: aiConfig.fallbackModel,
     maxTokens: aiConfig.maxTokens,
     temperature,
+    openAIApiKey: process.env.OPENAI_API_KEY,
   });
 }

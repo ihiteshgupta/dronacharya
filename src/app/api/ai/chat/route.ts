@@ -1,7 +1,8 @@
 import { HumanMessage, AIMessage } from '@langchain/core/messages';
 import { chat } from '@/lib/ai/orchestrator';
-import { db } from '@/lib/db';
+import { db, users, userProfiles, lessons, aiSessions, aiMessages } from '@/lib/db';
 import { auth } from '@/lib/auth';
+import { eq, and } from 'drizzle-orm';
 import type { TeachingMode } from '@/lib/ai/types';
 
 export const runtime = 'nodejs';
@@ -10,8 +11,8 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   try {
     // Get user from NextAuth session
-    const session = await auth();
-    const userId = session?.user?.id;
+    const authSession = await auth();
+    const userId = authSession?.user?.id;
     if (!userId) {
       return new Response('Unauthorized', { status: 401 });
     }
@@ -20,11 +21,11 @@ export async function POST(req: Request) {
 
     // Get user profile
     const user = await db.query.users.findFirst({
-      where: { id: userId },
+      where: eq(users.id, userId),
     });
 
     const profile = await db.query.userProfiles.findFirst({
-      where: { userId },
+      where: eq(userProfiles.userId, userId),
     });
 
     if (!user) {
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
 
     if (lessonId) {
       const lesson = await db.query.lessons.findFirst({
-        where: { id: lessonId },
+        where: eq(lessons.id, lessonId),
         with: {
           module: {
             with: {
@@ -55,11 +56,12 @@ export async function POST(req: Request) {
       if (lesson) {
         const content = lesson.contentJson as { objectives?: string[] } | null;
         const aiConfig = lesson.aiConfig as { mode?: string } | null;
+        const moduleData = lesson.module as { courseId?: string } | undefined;
 
         lessonContext = {
           lessonId: lesson.id,
           topic: lesson.name,
-          courseId: lesson.module?.courseId || '',
+          courseId: moduleData?.courseId || '',
           objectives: content?.objectives || [],
           teachingMode: (aiConfig?.mode as TeachingMode) || 'adaptive',
         };
@@ -74,18 +76,18 @@ export async function POST(req: Request) {
     const userMessage = messages[messages.length - 1].content;
 
     // Get or create AI session
-    const session = await db.query.aiSessions.findFirst({
-      where: {
-        userId,
-        lessonId: lessonId || '',
-        status: 'active',
-      },
+    const existingAiSession = await db.query.aiSessions.findFirst({
+      where: and(
+        eq(aiSessions.userId, userId),
+        eq(aiSessions.status, 'active'),
+        lessonId ? eq(aiSessions.lessonId, lessonId) : undefined
+      ),
     });
 
-    const sessionId = session?.id || crypto.randomUUID();
+    const sessionId = existingAiSession?.id || crypto.randomUUID();
 
-    if (!session) {
-      await db.insert('aiSessions').values({
+    if (!existingAiSession) {
+      await db.insert(aiSessions).values({
         id: sessionId,
         userId,
         lessonId: lessonId || null,
@@ -95,7 +97,7 @@ export async function POST(req: Request) {
     }
 
     // Save user message
-    await db.insert('aiMessages').values({
+    await db.insert(aiMessages).values({
       sessionId,
       role: 'user',
       content: userMessage,
@@ -117,7 +119,7 @@ export async function POST(req: Request) {
     });
 
     // Save AI response
-    await db.insert('aiMessages').values({
+    await db.insert(aiMessages).values({
       sessionId,
       role: 'assistant',
       content: result.response,

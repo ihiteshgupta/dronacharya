@@ -76,7 +76,8 @@ export const authConfig: NextAuthConfig = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = user.role;
+        // Cast to access custom role property from our credentials provider
+        token.role = (user as { role?: string }).role;
       }
       return token;
     },

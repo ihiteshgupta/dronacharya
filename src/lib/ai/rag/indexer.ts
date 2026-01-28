@@ -1,9 +1,21 @@
-import { db } from '@/lib/db';
+import { db, courses } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 import { ragPipeline } from './pipeline';
+
+interface ModuleWithLessons {
+  id: string;
+  name: string;
+  description: string | null;
+  lessons?: Array<{
+    id: string;
+    name: string;
+    contentJson: { text?: string } | null;
+  }>;
+}
 
 export async function indexCourse(courseId: string) {
   const course = await db.query.courses.findFirst({
-    where: { id: courseId },
+    where: eq(courses.id, courseId),
     with: {
       modules: {
         with: {
@@ -34,7 +46,8 @@ export async function indexCourse(courseId: string) {
   }
 
   // Index each module and lesson
-  for (const courseModule of course.modules || []) {
+  const courseModules = (course as { modules?: ModuleWithLessons[] }).modules || [];
+  for (const courseModule of courseModules) {
     if (courseModule.description) {
       const result = await ragPipeline.indexContent(
         `module-${courseModule.id}`,

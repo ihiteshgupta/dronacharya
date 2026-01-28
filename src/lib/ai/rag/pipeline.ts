@@ -1,6 +1,6 @@
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
-import { embeddings } from '../models';
+import { getEmbeddings } from '../models';
 import { ragConfig } from '../config';
 
 const qdrant = new QdrantClient({
@@ -45,7 +45,7 @@ export const ragPipeline = {
     });
 
     const chunks = await splitter.splitText(content);
-    const vectors = await embeddings.embedDocuments(chunks);
+    const vectors = await getEmbeddings().embedDocuments(chunks);
 
     const points = chunks.map((chunk: string, i: number) => ({
       id: `${contentId}-${i}`,
@@ -78,7 +78,7 @@ export const ragPipeline = {
     },
     limit: number = ragConfig.topK
   ): Promise<string> {
-    const queryVector = await embeddings.embedQuery(query);
+    const queryVector = await getEmbeddings().embedQuery(query);
 
     const filter: Record<string, unknown> = {};
     if (filters?.courseId) {
