@@ -3,6 +3,8 @@
 import { CodeEditorCanvas } from './canvases/code-editor-canvas';
 import { VisualizationCanvas } from './canvases/visualization-canvas';
 import { ChallengeCanvas } from './canvases/challenge-canvas';
+import { ConceptCanvas } from './canvases/concept-canvas';
+import { QuizCanvas } from './canvases/quiz-canvas';
 
 interface LessonCanvasProps {
   lesson: {
@@ -53,6 +55,26 @@ export function LessonCanvas({ lesson, step: _step, onComplete }: LessonCanvasPr
           onSubmit={async () => {
             onComplete();
             return true;
+          }}
+        />
+      );
+
+    case 'concept':
+      return (
+        <ConceptCanvas
+          content={content.markdown as string || content.content as string}
+          keyTakeaways={content.keyTakeaways as string[]}
+          onComplete={onComplete}
+        />
+      );
+
+    case 'quiz':
+      return (
+        <QuizCanvas
+          questions={content.questions as []}
+          passingScore={content.passingScore as number || 70}
+          onComplete={(score, passed) => {
+            if (passed) onComplete();
           }}
         />
       );
