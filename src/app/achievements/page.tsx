@@ -20,8 +20,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const TEST_USER_ID = '11111111-1111-1111-1111-111111111111';
-
 const achievementCategories = [
   { id: 'all', label: 'All', icon: Trophy },
   { id: 'learning', label: 'Learning', icon: BookOpen },
@@ -38,13 +36,9 @@ const rarityColors: Record<string, string> = {
 };
 
 export default function AchievementsPage() {
-  const { data: achievements, isLoading } = trpc.gamification.getAchievements.useQuery(undefined, {
-    context: { headers: { 'x-user-id': TEST_USER_ID } },
-  });
+  const { data: achievements, isLoading } = trpc.gamification.getAchievements.useQuery();
 
-  const { data: profile } = trpc.gamification.getProfile.useQuery(undefined, {
-    context: { headers: { 'x-user-id': TEST_USER_ID } },
-  });
+  const { data: profile } = trpc.gamification.getProfile.useQuery();
 
   const earnedCount = achievements?.filter((a: any) => a.earned).length || 0;
   const totalCount = achievements?.length || 0;
