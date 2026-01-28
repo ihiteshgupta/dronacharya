@@ -10,7 +10,7 @@ export default function LessonPage() {
   const router = useRouter();
   const lessonId = params.id as string;
 
-  const { data: lesson, isLoading, error } = trpc.course.getLesson.useQuery(
+  const { data, isLoading, error } = trpc.course.getLesson.useQuery(
     { lessonId },
     { enabled: !!lessonId }
   );
@@ -35,7 +35,7 @@ export default function LessonPage() {
     );
   }
 
-  if (error || !lesson) {
+  if (error || !data?.lesson) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="text-destructive">Failed to load lesson</p>
@@ -43,12 +43,14 @@ export default function LessonPage() {
     );
   }
 
+  const { lesson } = data;
+
   // Format lesson for ImmersiveLesson component
   const formattedLesson = {
     id: lesson.id,
-    name: lesson.title,
+    name: lesson.name,
     type: lesson.type,
-    content: lesson.content,
+    content: lesson.contentJson,
     module: {
       name: lesson.module?.name || 'Module',
       course: {
@@ -58,7 +60,7 @@ export default function LessonPage() {
   };
 
   // Calculate total steps from content
-  const content = lesson.content as { steps?: unknown[] };
+  const content = lesson.contentJson as { steps?: unknown[] } | null;
   const totalSteps = content?.steps?.length || 1;
 
   return (
