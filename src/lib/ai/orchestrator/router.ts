@@ -35,9 +35,14 @@ const INTENT_PATTERNS: Record<AgentType, RegExp[]> = {
     /check my understanding/i,
   ],
   quizGenerator: [
-    /generate (a )?quiz/i,
-    /create questions/i,
-    /practice problems/i,
+    /generate (a |the )?quiz/i,
+    /create (a |some )?questions/i,
+    /practice (problems|questions)/i,
+    /make me a test/i,
+    /certification exam/i,
+    /exam prep/i,
+    /mock test/i,
+    /assessment questions/i,
   ],
   tutor: [], // Default
   orchestrator: [],

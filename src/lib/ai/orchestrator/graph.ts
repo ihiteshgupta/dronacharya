@@ -5,6 +5,7 @@ import { assessorAgent } from '../agents/assessor';
 import { codeReviewAgent } from '../agents/code-review';
 import { mentorAgent } from '../agents/mentor';
 import { projectGuideAgent } from '../agents/project-guide';
+import { quizGeneratorAgent } from '../agents/quiz-generator';
 import { routeToAgent } from './router';
 import type { AgentType, LessonContext, UserProfile, AgentState } from '../types';
 
@@ -115,6 +116,14 @@ async function projectGuideNode(state: GraphStateType): Promise<Partial<GraphSta
   };
 }
 
+async function quizGeneratorNode(state: GraphStateType): Promise<Partial<GraphStateType>> {
+  const result = await quizGeneratorAgent.invoke(toAgentState(state));
+  return {
+    messages: result.messages,
+    metadata: result.metadata,
+  };
+}
+
 // Route function for conditional edges
 function routeAfterRouter(state: GraphStateType): string {
   return state.currentAgent;
@@ -129,6 +138,7 @@ export function createOrchestratorGraph() {
     .addNode('codeReview', codeReviewNode)
     .addNode('mentor', mentorNode)
     .addNode('projectGuide', projectGuideNode)
+    .addNode('quizGenerator', quizGeneratorNode)
     .addEdge(START, 'router')
     .addConditionalEdges('router', routeAfterRouter, {
       tutor: 'tutor',
@@ -136,12 +146,14 @@ export function createOrchestratorGraph() {
       codeReview: 'codeReview',
       mentor: 'mentor',
       projectGuide: 'projectGuide',
+      quizGenerator: 'quizGenerator',
     })
     .addEdge('tutor', END)
     .addEdge('assessor', END)
     .addEdge('codeReview', END)
     .addEdge('mentor', END)
-    .addEdge('projectGuide', END);
+    .addEdge('projectGuide', END)
+    .addEdge('quizGenerator', END);
 
   return workflow.compile();
 }
