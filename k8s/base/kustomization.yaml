@@ -12,6 +12,8 @@ resources:
   - ingress.yaml
   - hpa.yaml
 
-commonLabels:
-  app.kubernetes.io/name: learnflow
-  app.kubernetes.io/part-of: learnflow-ai
+labels:
+  - pairs:
+      app.kubernetes.io/name: learnflow
+      app.kubernetes.io/part-of: learnflow-ai
+    includeSelectors: false

@@ -8,14 +8,37 @@ resources:
 
 namePrefix: staging-
 
-commonLabels:
-  environment: staging
+labels:
+  - pairs:
+      environment: staging
+    includeSelectors: false
 
-# Staging-specific patches
+# Staging-specific patches with target selectors
 patches:
-  - path: deployment-patch.yaml
-  - path: ingress-patch.yaml
-  - path: hpa-patch.yaml
+  - target:
+      kind: Deployment
+      name: learnflow-web
+    path: deployment-web-patch.yaml
+  - target:
+      kind: Deployment
+      name: learnflow-ai
+    path: deployment-ai-patch.yaml
+  - target:
+      kind: Ingress
+      name: learnflow-ingress
+    path: ingress-patch.yaml
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: learnflow-web-hpa
+    path: hpa-web-patch.yaml
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: learnflow-ai-hpa
+    path: hpa-ai-patch.yaml
+  - target:
+      kind: ConfigMap
+      name: learnflow-config
+    path: configmap-patch.yaml
 
 # Staging image tags
 images:
@@ -23,14 +46,3 @@ images:
     newTag: staging
   - name: learnflow/ai-service
     newTag: staging
-
-# Replace configmap for staging
-configMapGenerator:
-  - name: learnflow-config
-    behavior: replace
-    literals:
-      - NODE_ENV=staging
-      - NEXT_PUBLIC_APP_URL=https://staging.learnflow.ai
-      - ENABLE_GAMIFICATION=true
-      - ENABLE_AI_PROCTORING=false
-      - MAX_AI_REQUESTS_PER_MINUTE=60
