@@ -237,20 +237,97 @@ export default function AchievementsPage() {
             </div>
           </TabsContent>
 
-          {/* Other category tabs show same but filtered */}
-          {achievementCategories.slice(1).map((cat) => (
-            <TabsContent key={cat.id} value={cat.id}>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <Card className="border-0 shadow-md border-dashed">
-                  <CardContent className="p-6 text-center">
-                    <p className="text-muted-foreground">
-                      Category filtering coming soon...
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-          ))}
+          {/* Category filtered tabs */}
+          {achievementCategories.slice(1).map((cat) => {
+            const filteredAchievements = achievements?.filter(a => a.category === cat.id) || [];
+            return (
+              <TabsContent key={cat.id} value={cat.id}>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {isLoading ? (
+                    [...Array(3)].map((_, i) => (
+                      <Card key={i} className="animate-pulse border-0 shadow-md">
+                        <CardContent className="p-6">
+                          <div className="h-16 w-16 rounded-xl bg-muted mb-4" />
+                          <div className="h-5 w-32 bg-muted rounded mb-2" />
+                          <div className="h-4 w-48 bg-muted rounded" />
+                        </CardContent>
+                      </Card>
+                    ))
+                  ) : filteredAchievements.length === 0 ? (
+                    <Card className="col-span-full border-0 shadow-md">
+                      <CardContent className="p-6 text-center">
+                        <cat.icon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                        <p className="text-muted-foreground">
+                          No {cat.label.toLowerCase()} achievements yet. Keep learning!
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    filteredAchievements.map((achievement) => (
+                      <Card
+                        key={achievement.id}
+                        className={cn(
+                          'card-hover border-0 shadow-md relative overflow-hidden',
+                          !achievement.earned && 'opacity-70'
+                        )}
+                      >
+                        {achievement.earned && (
+                          <div className="absolute top-0 left-0 right-0 h-1 gradient-success" />
+                        )}
+                        <CardContent className="p-6">
+                          <div className="flex items-start gap-4">
+                            <div className={cn(
+                              'relative p-4 rounded-xl',
+                              achievement.earned
+                                ? `bg-gradient-to-br ${categoryColors[achievement.category] || 'from-slate-400 to-slate-500'}`
+                                : 'bg-muted'
+                            )}>
+                              <Trophy className={cn(
+                                'h-8 w-8',
+                                achievement.earned ? 'text-white animate-float' : 'text-muted-foreground'
+                              )} />
+                              {achievement.earned && (
+                                <CheckCircle className="absolute -top-1 -right-1 h-5 w-5 text-emerald bg-background rounded-full" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-semibold">{achievement.name}</h3>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-3">
+                                {achievement.description}
+                              </p>
+                              <div className="flex items-center justify-between">
+                                <Badge
+                                  className={cn(
+                                    achievement.earned
+                                      ? 'gradient-success text-white border-0'
+                                      : 'bg-amber/15 text-amber border-0'
+                                  )}
+                                >
+                                  {achievement.earned ? (
+                                    <><CheckCircle className="h-3 w-3 mr-1" /> Earned</>
+                                  ) : (
+                                    <><Zap className="h-3 w-3 mr-1" /> +{achievement.xpReward} XP</>
+                                  )}
+                                </Badge>
+                                {achievement.earnedAt && (
+                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    {new Date(achievement.earnedAt).toLocaleDateString()}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+            );
+          })}
         </Tabs>
       </div>
     </MainLayout>
