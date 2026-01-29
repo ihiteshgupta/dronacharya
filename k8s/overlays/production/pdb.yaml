@@ -1,0 +1,21 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: learnflow-web-pdb
+  namespace: learnflow
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: learnflow-web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: learnflow-ai-pdb
+  namespace: learnflow
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: learnflow-ai

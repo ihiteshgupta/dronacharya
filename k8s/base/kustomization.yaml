@@ -6,6 +6,7 @@ namespace: learnflow
 resources:
   - namespace.yaml
   - configmap.yaml
+  - secrets.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml

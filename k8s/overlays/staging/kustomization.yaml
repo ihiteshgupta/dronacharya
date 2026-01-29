@@ -1,0 +1,36 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: learnflow-staging
+
+resources:
+  - ../../base
+
+namePrefix: staging-
+
+commonLabels:
+  environment: staging
+
+# Staging-specific patches
+patches:
+  - path: deployment-patch.yaml
+  - path: ingress-patch.yaml
+  - path: hpa-patch.yaml
+
+# Staging image tags
+images:
+  - name: learnflow/web
+    newTag: staging
+  - name: learnflow/ai-service
+    newTag: staging
+
+# Replace configmap for staging
+configMapGenerator:
+  - name: learnflow-config
+    behavior: replace
+    literals:
+      - NODE_ENV=staging
+      - NEXT_PUBLIC_APP_URL=https://staging.learnflow.ai
+      - ENABLE_GAMIFICATION=true
+      - ENABLE_AI_PROCTORING=false
+      - MAX_AI_REQUESTS_PER_MINUTE=60

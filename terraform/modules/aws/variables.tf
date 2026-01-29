@@ -15,15 +15,45 @@ variable "cluster_name" {
 }
 
 variable "node_count" {
-  description = "Number of worker nodes"
+  description = "Number of worker nodes (deprecated, use node_desired_size)"
   type        = number
   default     = 3
 }
 
+variable "node_desired_size" {
+  description = "Desired number of worker nodes"
+  type        = number
+  default     = 3
+}
+
+variable "node_min_size" {
+  description = "Minimum number of worker nodes"
+  type        = number
+  default     = 1
+}
+
+variable "node_max_size" {
+  description = "Maximum number of worker nodes"
+  type        = number
+  default     = 10
+}
+
 variable "node_instance_type" {
-  description = "EC2 instance type for nodes"
+  description = "EC2 instance type for nodes (deprecated, use node_instance_types)"
   type        = string
   default     = "t3.medium"
+}
+
+variable "node_instance_types" {
+  description = "List of EC2 instance types for nodes"
+  type        = list(string)
+  default     = ["t3.medium"]
+}
+
+variable "db_instance_count" {
+  description = "Number of database instances (2 for Multi-AZ)"
+  type        = number
+  default     = 1
 }
 
 variable "db_instance_class" {

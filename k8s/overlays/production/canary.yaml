@@ -1,0 +1,97 @@
+# Canary deployment for gradual rollout
+# Used by CI/CD pipeline for production deployments
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: learnflow-web-canary
+  namespace: learnflow
+  labels:
+    app: learnflow-web
+    track: canary
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: learnflow-web
+      track: canary
+  template:
+    metadata:
+      labels:
+        app: learnflow-web
+        track: canary
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/api/metrics"
+    spec:
+      containers:
+        - name: web
+          image: learnflow/web:canary
+          ports:
+            - containerPort: 3000
+              name: http
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          envFrom:
+            - configMapRef:
+                name: learnflow-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: learnflow-secrets
+                  key: database-url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: learnflow-secrets
+                  key: redis-url
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: learnflow-secrets
+                  key: anthropic-api-key
+            - name: NEXTAUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: learnflow-secrets
+                  key: nextauth-secret
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/ready
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      imagePullSecrets:
+        - name: registry-credentials
+---
+# Service for canary (weighted traffic via ingress)
+apiVersion: v1
+kind: Service
+metadata:
+  name: learnflow-web-canary
+  namespace: learnflow
+  labels:
+    app: learnflow-web
+    track: canary
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: learnflow-web
+    track: canary
