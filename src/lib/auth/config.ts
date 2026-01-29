@@ -20,7 +20,7 @@ export const authConfig: NextAuthConfig = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials, request) {
+      async authorize(credentials, _request) {
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) {
           return null;
@@ -76,7 +76,8 @@ export const authConfig: NextAuthConfig = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = user.role;
+        // Cast to access custom role property from our credentials provider
+        token.role = (user as { role?: string }).role;
       }
       return token;
     },

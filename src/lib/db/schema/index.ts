@@ -5,3 +5,5 @@ export * from './progress';
 export * from './gamification';
 export * from './certifications';
 export * from './ai';
+export * from './learning-paths';
+export * from './notifications';

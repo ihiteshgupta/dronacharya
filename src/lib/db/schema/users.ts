@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, jsonb, timestamp, integer, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, jsonb, timestamp, integer } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 export const users = pgTable('users', {
@@ -48,6 +48,7 @@ export interface UserPreferences {
   theme?: 'light' | 'dark' | 'system';
   notifications?: boolean;
   emailDigest?: 'daily' | 'weekly' | 'never';
+  bio?: string;
 }
 
 export interface StudyPreferences {

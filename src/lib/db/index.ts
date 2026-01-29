@@ -1,12 +1,15 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
+import { drizzle, PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema/index';
+
+// Define the database type with schema
+export type Database = PostgresJsDatabase<typeof schema>;
 
 // Check if DATABASE_URL is configured
 const connectionString = process.env.DATABASE_URL;
 
 // Create a mock db for development without database
-const createMockDb = () => ({
+const createMockDb = (): Database => ({
   query: {
     users: { findFirst: async () => null, findMany: async () => [] },
     userProfiles: { findFirst: async () => null, findMany: async () => [] },
@@ -31,9 +34,9 @@ const createMockDb = () => ({
   delete: () => ({ where: async () => {} }),
   execute: async () => [{}],
   select: () => ({ from: () => ({ orderBy: () => ({ limit: async () => [] }) }) }),
-});
+}) as unknown as Database;
 
-let db: ReturnType<typeof drizzle> | ReturnType<typeof createMockDb>;
+let db: Database;
 
 if (connectionString) {
   const client = postgres(connectionString, {
@@ -42,11 +45,10 @@ if (connectionString) {
   db = drizzle(client, { schema });
 } else {
   console.warn('DATABASE_URL not configured - using mock database');
-  db = createMockDb() as any;
+  db = createMockDb();
 }
 
 export { db };
-export type Database = typeof db;
 
 // Re-export all schema types
 export * from './schema/index';

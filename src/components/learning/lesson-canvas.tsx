@@ -3,6 +3,8 @@
 import { CodeEditorCanvas } from './canvases/code-editor-canvas';
 import { VisualizationCanvas } from './canvases/visualization-canvas';
 import { ChallengeCanvas } from './canvases/challenge-canvas';
+import { ConceptCanvas } from './canvases/concept-canvas';
+import { QuizCanvas } from './canvases/quiz-canvas';
 
 interface LessonCanvasProps {
   lesson: {
@@ -13,7 +15,7 @@ interface LessonCanvasProps {
   onComplete: () => void;
 }
 
-export function LessonCanvas({ lesson, step, onComplete }: LessonCanvasProps) {
+export function LessonCanvas({ lesson, step: _step, onComplete }: LessonCanvasProps) {
   const content = lesson.content as Record<string, unknown>;
 
   switch (lesson.type) {
@@ -32,7 +34,7 @@ export function LessonCanvas({ lesson, step, onComplete }: LessonCanvasProps) {
         <VisualizationCanvas
           type={content.visualizationType as 'memory' | 'algorithm' | 'dataflow' | 'network'}
           steps={content.steps as []}
-          renderStep={(data, type) => (
+          renderStep={(data, _type) => (
             <div className="p-4 border rounded-lg bg-background">
               <pre>{JSON.stringify(data, null, 2)}</pre>
             </div>
@@ -53,6 +55,26 @@ export function LessonCanvas({ lesson, step, onComplete }: LessonCanvasProps) {
           onSubmit={async () => {
             onComplete();
             return true;
+          }}
+        />
+      );
+
+    case 'concept':
+      return (
+        <ConceptCanvas
+          content={content.markdown as string || content.content as string}
+          keyTakeaways={content.keyTakeaways as string[]}
+          onComplete={onComplete}
+        />
+      );
+
+    case 'quiz':
+      return (
+        <QuizCanvas
+          questions={content.questions as []}
+          passingScore={content.passingScore as number || 70}
+          onComplete={(score, passed) => {
+            if (passed) onComplete();
           }}
         />
       );
