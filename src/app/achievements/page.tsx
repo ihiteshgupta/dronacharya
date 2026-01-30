@@ -27,11 +27,11 @@ const achievementCategories = [
   { id: 'special', label: 'Special', icon: Award },
 ];
 
-const rarityColors: Record<string, string> = {
-  common: 'from-slate-400 to-slate-500',
-  rare: 'from-blue-400 to-blue-500',
-  epic: 'from-violet-400 to-violet-500',
-  legendary: 'from-amber-400 via-amber-500 to-rose-500',
+const categoryColors: Record<string, string> = {
+  learning: 'from-emerald-400 to-cyan-500',
+  streak: 'from-amber-400 to-rose-500',
+  mastery: 'from-violet-400 to-purple-500',
+  special: 'from-amber-400 via-amber-500 to-rose-500',
 };
 
 export default function AchievementsPage() {
@@ -171,7 +171,7 @@ export default function AchievementsPage() {
                         <div className={cn(
                           'relative p-4 rounded-xl',
                           achievement.earned
-                            ? `bg-gradient-to-br ${rarityColors[achievement.rarity ?? 'common'] || rarityColors.common}`
+                            ? `bg-gradient-to-br ${categoryColors[achievement.category] || 'from-slate-400 to-slate-500'}`
                             : 'bg-muted'
                         )}>
                           <Trophy className={cn(
@@ -186,16 +186,8 @@ export default function AchievementsPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold">{achievement.name}</h3>
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                'text-xs capitalize',
-                                achievement.rarity === 'legendary' && 'border-amber text-amber',
-                                achievement.rarity === 'epic' && 'border-violet text-violet',
-                                achievement.rarity === 'rare' && 'border-blue-500 text-blue-500'
-                              )}
-                            >
-                              {achievement.rarity}
+                            <Badge variant="outline" className="text-xs capitalize">
+                              {achievement.category}
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground mb-3">
