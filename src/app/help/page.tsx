@@ -27,7 +27,7 @@ const faqs = [
     category: 'Getting Started',
     questions: [
       {
-        q: 'How do I start learning on LearnFlow AI?',
+        q: 'How do I start learning on Dronacharya AI?',
         a: 'After signing up, head to the Courses page to browse available learning tracks. Choose a track that interests you and click "Start Track" to begin. The AI will adapt the content to your learning pace.',
       },
       {
@@ -49,7 +49,7 @@ const faqs = [
       },
       {
         q: 'What are levels and how do I level up?',
-        a: 'Levels represent your overall progress on LearnFlow. As you earn XP, you progress through levels. Each level requires more XP than the previous one. Higher levels unlock special achievements and badges.',
+        a: 'Levels represent your overall progress on Dronacharya. As you earn XP, you progress through levels. Each level requires more XP than the previous one. Higher levels unlock special achievements and badges.',
       },
       {
         q: 'Do streaks affect my XP?',
@@ -66,7 +66,7 @@ const faqs = [
       },
       {
         q: 'Are certifications recognized?',
-        a: 'LearnFlow AI certifications demonstrate verified skill proficiency. Each certificate includes a unique credential ID that can be verified by employers through our verification portal.',
+        a: 'Dronacharya AI certifications demonstrate verified skill proficiency. Each certificate includes a unique credential ID that can be verified by employers through our verification portal.',
       },
       {
         q: 'Can I share my achievements?',
@@ -78,8 +78,8 @@ const faqs = [
     category: 'Account & Billing',
     questions: [
       {
-        q: 'Is LearnFlow AI free?',
-        a: 'LearnFlow offers a free tier with access to select courses. Premium membership unlocks all courses, advanced analytics, offline access, and priority support.',
+        q: 'Is Dronacharya AI free?',
+        a: 'Dronacharya offers a free tier with access to select courses. Premium membership unlocks all courses, advanced analytics, offline access, and priority support.',
       },
       {
         q: 'How do I upgrade to Premium?',

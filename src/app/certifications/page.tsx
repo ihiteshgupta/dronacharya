@@ -23,7 +23,7 @@ const certifications = [
   {
     id: '1',
     name: 'Python Fundamentals',
-    issuer: 'LearnFlow AI',
+    issuer: 'Dronacharya',
     status: 'completed',
     completedAt: '2024-01-15',
     credentialId: 'LF-PY-2024-001',
@@ -33,7 +33,7 @@ const certifications = [
   {
     id: '2',
     name: 'Data Science Basics',
-    issuer: 'LearnFlow AI',
+    issuer: 'Dronacharya',
     status: 'in_progress',
     progress: 65,
     skills: ['pandas', 'NumPy', 'Data Visualization'],
@@ -41,7 +41,7 @@ const certifications = [
   {
     id: '3',
     name: 'Machine Learning Foundations',
-    issuer: 'LearnFlow AI',
+    issuer: 'Dronacharya',
     status: 'locked',
     progress: 0,
     skills: ['Supervised Learning', 'Model Training', 'Evaluation'],

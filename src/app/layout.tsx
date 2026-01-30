@@ -14,8 +14,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LearnFlow AI",
-  description: "Interactive AI-powered learning platform",
+  title: "Dronacharya - AI that teaches like a Guru",
+  description: "AI-powered learning platform with personalized tutoring. Master programming, data science, and AI/ML with guided learning from intelligent agents.",
+  keywords: ["AI tutor", "learn programming", "data science", "machine learning", "personalized learning", "Dronacharya"],
+  authors: [{ name: "Margadeshaka" }],
+  openGraph: {
+    title: "Dronacharya - AI that teaches like a Guru",
+    description: "Master programming, data science, and AI/ML with AI-powered personalized tutoring.",
+    siteName: "Dronacharya",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Dronacharya - AI that teaches like a Guru",
+    description: "Master programming, data science, and AI/ML with AI-powered personalized tutoring.",
+  },
 };
 
 export default function RootLayout({

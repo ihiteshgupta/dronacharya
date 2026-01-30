@@ -10,7 +10,7 @@ interface MainLayoutProps {
 // Demo user - in real app this comes from auth context
 const defaultUser = {
   name: 'Test User',
-  email: 'test@learnflow.ai',
+  email: 'test@dronacharya.ai',
   avatarUrl: undefined,
 };
 

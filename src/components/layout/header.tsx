@@ -36,10 +36,10 @@ function Logo() {
       {/* Logo Text */}
       <div className="flex flex-col">
         <span className="font-bold text-xl tracking-tight gradient-text">
-          LearnFlow
+          Dronacharya
         </span>
         <span className="text-[10px] font-medium text-muted-foreground -mt-1 tracking-widest uppercase">
-          AI
+          AI Guru
         </span>
       </div>
     </Link>
