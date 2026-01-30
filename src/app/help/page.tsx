@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { MainLayout } from '@/components/layout';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,7 @@ const faqs = [
     category: 'Getting Started',
     questions: [
       {
-        q: 'How do I start learning on Dronacharya?',
+        q: 'How do I start learning on Dronacharya AI?',
         a: 'After signing up, head to the Courses page to browse available learning tracks. Choose a track that interests you and click "Start Track" to begin. The AI will adapt the content to your learning pace.',
       },
       {
@@ -66,7 +66,7 @@ const faqs = [
       },
       {
         q: 'Are certifications recognized?',
-        a: 'Dronacharya certifications demonstrate verified skill proficiency. Each certificate includes a unique credential ID that can be verified by employers through our verification portal.',
+        a: 'Dronacharya AI certifications demonstrate verified skill proficiency. Each certificate includes a unique credential ID that can be verified by employers through our verification portal.',
       },
       {
         q: 'Can I share my achievements?',
@@ -78,7 +78,7 @@ const faqs = [
     category: 'Account & Billing',
     questions: [
       {
-        q: 'Is Dronacharya free?',
+        q: 'Is Dronacharya AI free?',
         a: 'Dronacharya offers a free tier with access to select courses. Premium membership unlocks all courses, advanced analytics, offline access, and priority support.',
       },
       {
@@ -98,22 +98,19 @@ const resources = [
     title: 'Documentation',
     description: 'Comprehensive guides and tutorials',
     icon: BookOpen,
-    href: '/help#faqs',
-    external: false,
+    href: '#',
   },
   {
     title: 'Community Forum',
     description: 'Connect with other learners',
     icon: MessageCircle,
-    href: 'https://github.com/dronacharya-app/discussions',
-    external: true,
+    href: '#',
   },
   {
     title: 'Contact Support',
     description: 'Get help from our team',
     icon: Mail,
-    href: 'mailto:support@dronacharya.app',
-    external: true,
+    href: '#',
   },
 ];
 
@@ -159,29 +156,20 @@ export default function HelpPage() {
         {/* Quick Links */}
         <div className="grid gap-4 md:grid-cols-3">
           {resources.map((resource) => (
-            <a
-              key={resource.title}
-              href={resource.href}
-              target={resource.external ? '_blank' : undefined}
-              rel={resource.external ? 'noopener noreferrer' : undefined}
-            >
-              <Card className="card-hover border-0 shadow-md cursor-pointer h-full">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl gradient-brand">
-                      <resource.icon className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{resource.title}</h3>
-                      <p className="text-sm text-muted-foreground">{resource.description}</p>
-                    </div>
-                    {resource.external && (
-                      <ExternalLink className="h-5 w-5 text-muted-foreground" />
-                    )}
+            <Card key={resource.title} className="card-hover border-0 shadow-md cursor-pointer">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-xl gradient-brand">
+                    <resource.icon className="h-6 w-6 text-white" />
                   </div>
-                </CardContent>
-              </Card>
-            </a>
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{resource.title}</h3>
+                    <p className="text-sm text-muted-foreground">{resource.description}</p>
+                  </div>
+                  <ExternalLink className="h-5 w-5 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
 
@@ -298,12 +286,10 @@ export default function HelpPage() {
                   Our support team is available 24/7 to assist you with any questions.
                 </p>
               </div>
-              <a href="mailto:support@dronacharya.app">
-                <Button className="gradient-brand text-white shrink-0">
-                  <Mail className="h-4 w-4 mr-2" />
-                  Contact Support
-                </Button>
-              </a>
+              <Button className="gradient-brand text-white shrink-0">
+                <Mail className="h-4 w-4 mr-2" />
+                Contact Support
+              </Button>
             </div>
           </CardContent>
         </Card>

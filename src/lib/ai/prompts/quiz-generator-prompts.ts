@@ -1,217 +1,134 @@
-export const QUIZ_GENERATOR_SYSTEM_PROMPT = `You are a quiz and assessment generator for the Dronacharya learning platform. Your role is to create engaging, pedagogically sound quizzes that accurately test student understanding.
+export const QUIZ_GENERATOR_SYSTEM_PROMPT = `You are a quiz generation specialist for the Dronacharya learning platform. Your role is to create engaging, educational quizzes that assess understanding while promoting learning.
 
-## Current Context
-- Student Level: {level} (1-100 scale)
-- Course: {courseName}
-- Module: {moduleName}
-- Learning Objectives: {objectives}
+## Student Level: {level}
+## Topic: {topic}
+## Learning Objectives: {objectives}
 
-## Question Quality Guidelines
+## Quiz Generation Principles:
+1. **Bloom's Taxonomy**: Progress from remember → understand → apply → analyze
+2. **Adaptive Difficulty**: Match student level and past performance
+3. **Educational Value**: Every question teaches, even when wrong
+4. **Variety**: Mix question types to assess different skills
 
-### General Principles:
-1. Questions should test understanding, not just recall
-2. Avoid ambiguous wording or trick questions
-3. Include real-world applications when possible
-4. Match difficulty to the student's level
-5. Provide clear, actionable feedback for all answers
+## Course Content Context:
+{ragContext}`;
 
-### Question Type Best Practices:
+export const GENERATE_QUIZ_PROMPT = `Generate a complete quiz based on this content:
 
-**MULTIPLE CHOICE:**
-- One clearly correct answer among 4 options
-- Distractors should be plausible but distinguishable
-- Avoid "all of the above" or "none of the above"
-- Options should be roughly equal in length
+Topic: {topic}
+Course Content: {content}
+Student Level: {level}
+Previous Quiz Score: {previousScore}
+Question Count: {questionCount}
+Focus Areas: {focusAreas}
 
-**CODE OUTPUT:**
-- Use clear, runnable code snippets
-- Test specific language features or concepts
-- Include edge cases for advanced students
-- Ensure output is unambiguous
+Create a quiz with varied question types that test understanding of the material.
 
-**BUG FINDING:**
-- Include exactly one bug per question (unless specified)
-- Bug should be conceptually important, not typos
-- Code should be otherwise well-written
-- Test common misconceptions
-
-**CODE COMPLETION:**
-- Provide sufficient context to complete the code
-- One clear correct solution (or explain if multiple valid)
-- Focus on key concepts, not syntax minutiae
-- Include function signatures and expected behavior
-
-**CONCEPTUAL:**
-- Open-ended but with clear evaluation criteria
-- Test deep understanding over surface knowledge
-- Accept multiple valid phrasings of correct answers
-- Provide rubric for partial credit
-
-**TRUE/FALSE:**
-- Statement should be definitively true or false
-- Avoid absolutes like "always" or "never" unless accurate
-- Test conceptual understanding
-
-**ORDERING:**
-- Provide 4-6 items to order
-- Clear logical sequence exists
-- Test understanding of processes or hierarchies
-
-## Course Content Reference:
-{ragContext}
-
-Always output questions in valid JSON format as specified in the request.`;
-
-export const QUIZ_GENERATION_PROMPT = `Generate a quiz with the following specifications:
-
-## Quiz Parameters
-- Number of Questions: {count}
-- Difficulty Level: {difficulty}/10
-- Topic: {topic}
-- Question Types: {questionTypes}
-- Focus Areas: {focusAreas}
-- Target Time per Question: {timePerQuestion} seconds
-
-## Output Format
-Generate a JSON object with this structure:
-
-\`\`\`json
+Respond with JSON:
 {{
   "title": "Quiz title",
-  "description": "Brief description of what this quiz covers",
+  "description": "Brief description",
+  "estimatedMinutes": 10,
   "questions": [
     {{
       "id": "q1",
-      "type": "multiple_choice|code_output|bug_finding|code_completion|conceptual|true_false|ordering",
+      "type": "multiple_choice|code_output|fill_blank|true_false|short_answer",
+      "difficulty": 1-10,
       "question": "The question text",
-      "codeBlock": "// Optional: code snippet for code-related questions",
+      "codeSnippet": "Optional code to display with question",
       "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
-      "correctAnswer": "A",
-      "explanation": "Detailed explanation of why this is correct",
-      "hint": "A helpful hint for struggling students",
-      "difficulty": 5,
+      "correctAnswer": "The correct answer or option letter",
+      "explanation": "Why this is correct and why others are wrong",
+      "hint": "A helpful hint without giving away the answer",
       "points": 10,
-      "tags": ["concept1", "concept2"],
-      "timeEstimate": 60
+      "bloomLevel": "remember|understand|apply|analyze",
+      "conceptsTested": ["concept1", "concept2"]
     }}
   ],
-  "totalPoints": 100,
   "passingScore": 70,
-  "timeLimit": 600,
-  "tags": ["topic1", "topic2"]
-}}
-\`\`\`
+  "totalPoints": 100
+}}`;
 
-## Requirements:
-1. Distribute question types as specified
-2. Vary difficulty around the target level
-3. Cover all focus areas
-4. Ensure questions build on each other logically
-5. Include code blocks where appropriate
-6. Provide comprehensive explanations
+export const ADAPTIVE_QUESTION_PROMPT = `Generate an adaptive follow-up question based on student performance:
 
-Generate the quiz now.`;
+Previous Question: {previousQuestion}
+Student Answer: {studentAnswer}
+Was Correct: {wasCorrect}
+Student Level: {level}
+Concepts Being Tested: {concepts}
 
-export const EXAM_GENERATION_PROMPT = `Generate a certification exam with the following specifications:
+If correct: Generate a slightly harder question on the same or related concept.
+If incorrect: Generate an easier question that reinforces the fundamental concept.
 
-## Exam Parameters
-- Number of Questions: {count}
-- Passing Score: {passingScore}%
-- Time Limit: {timeLimit} minutes
-- Certification Tier: {certificationTier}
-
-## Certification Tier Guidelines
-
-**BRONZE (Beginner):**
-- 60% recall questions, 40% application
-- Focus on fundamental concepts
-- Simple code snippets only
-- Clear, straightforward questions
-
-**SILVER (Intermediate):**
-- 40% recall, 40% application, 20% analysis
-- Include debugging scenarios
-- Multi-step problems
-- Integration of concepts
-
-**GOLD (Advanced):**
-- 20% recall, 40% application, 40% analysis/synthesis
-- Complex debugging and optimization
-- System design elements
-- Edge cases and best practices
-
-**PLATINUM (Expert):**
-- 10% recall, 30% application, 60% analysis/synthesis/evaluation
-- Architecture decisions
-- Performance optimization
-- Real-world scenario handling
-- Cross-domain integration
-
-## Output Format
-Generate a JSON object with this structure:
-
-\`\`\`json
+Respond with JSON:
 {{
-  "title": "Certification Exam Title",
-  "description": "Comprehensive exam description",
-  "certificationTier": "bronze|silver|gold|platinum",
+  "question": {{
+    "type": "multiple_choice|code_output|fill_blank|true_false|short_answer",
+    "difficulty": 1-10,
+    "question": "Question text",
+    "codeSnippet": "Optional code",
+    "options": ["A)", "B)", "C)", "D)"],
+    "correctAnswer": "Answer",
+    "explanation": "Explanation",
+    "hint": "Hint",
+    "points": 10,
+    "conceptsTested": ["concepts"]
+  }},
+  "rationale": "Why this question was chosen as follow-up"
+}}`;
+
+export const ANALYZE_QUIZ_RESULTS_PROMPT = `Analyze quiz results and provide feedback:
+
+Quiz Topic: {topic}
+Questions and Answers:
+{questionsWithAnswers}
+
+Total Score: {score}/{totalPoints}
+Time Taken: {timeTaken} minutes
+
+Provide comprehensive analysis.
+
+Respond with JSON:
+{{
+  "overallAssessment": "Summary of performance",
+  "strengthAreas": ["Topics mastered"],
+  "weakAreas": ["Topics needing work"],
+  "conceptMastery": {{
+    "concept1": {{ "score": 80, "status": "mastered|developing|needs_work" }}
+  }},
+  "recommendations": [
+    {{ "type": "review|practice|advance", "topic": "Topic", "reason": "Why" }}
+  ],
+  "nextSteps": ["Specific actions to take"],
+  "encouragement": "Motivational feedback",
+  "suggestedRetakeIn": "When to retake if applicable"
+}}`;
+
+export const GENERATE_PRACTICE_SET_PROMPT = `Generate a practice question set for areas needing improvement:
+
+Weak Areas: {weakAreas}
+Student Level: {level}
+Course Content: {content}
+
+Create 5 practice questions focusing on weak areas, starting easier and building up.
+
+Respond with JSON:
+{{
+  "practiceSetTitle": "Practice: Weak Area Name",
+  "targetConcepts": ["concepts being practiced"],
   "questions": [
     {{
-      "id": "e1",
-      "type": "multiple_choice|code_output|bug_finding|code_completion|conceptual|true_false|ordering",
-      "question": "The question text",
-      "codeBlock": "// Optional code snippet",
-      "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
-      "correctAnswer": "A",
-      "explanation": "Detailed explanation",
-      "hint": "A hint for review purposes (not shown during exam)",
-      "difficulty": 7,
+      "id": "p1",
+      "type": "multiple_choice",
+      "difficulty": 1-10,
+      "question": "Question",
+      "options": ["A)", "B)", "C)", "D)"],
+      "correctAnswer": "Answer",
+      "explanation": "Detailed explanation for learning",
+      "hint": "Hint",
       "points": 10,
-      "section": "Section name for organizing questions",
-      "tags": ["concept1"],
-      "timeEstimate": 90,
-      "partialCreditRubric": "For conceptual questions, define partial credit criteria"
+      "relatedConcept": "specific concept"
     }}
   ],
-  "totalPoints": 100,
-  "passingScore": 70,
-  "timeLimit": 3600,
-  "sections": ["Section 1", "Section 2"],
-  "allowReview": true,
-  "shuffleQuestions": true,
-  "shuffleOptions": true
-}}
-\`\`\`
-
-## Requirements:
-1. Questions must thoroughly test certification-level knowledge
-2. Include scenario-based questions for application skills
-3. Balance question types appropriately for the tier
-4. Ensure comprehensive coverage of the certification domain
-5. Include clear grading rubrics for open-ended questions
-6. Questions should be examination-quality (no ambiguity)
-
-Generate the certification exam now.`;
-
-export const SINGLE_QUESTION_PROMPT = `Generate a single {type} question about {topic} at difficulty level {difficulty}/10.
-
-{ragContext}
-
-Output format:
-\`\`\`json
-{{
-  "id": "generated_1",
-  "type": "{type}",
-  "question": "The question text",
-  "codeBlock": "// Optional: code if needed",
-  "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
-  "correctAnswer": "The correct answer",
-  "explanation": "Why this answer is correct",
-  "hint": "A helpful hint",
-  "difficulty": {difficulty},
-  "points": 10,
-  "tags": ["relevant", "tags"]
-}}
-\`\`\`
-
-Generate one high-quality question now.`;
+  "learningTips": ["Tips for understanding these concepts"]
+}}`;

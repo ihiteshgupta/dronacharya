@@ -2,9 +2,16 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink } from '@trpc/client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import superjson from 'superjson';
+import { SessionProvider, useSession } from 'next-auth/react';
 import { trpc } from './client';
+
+// Demo user ID for unauthenticated beta users
+const DEMO_USER_ID = 'demo-user-00000000-0000-0000-0000';
+
+// Module-level state for user ID (accessed by tRPC headers callback)
+let currentUserId = DEMO_USER_ID;
 
 function getBaseUrl() {
   if (typeof window !== 'undefined') return '';
@@ -12,7 +19,14 @@ function getBaseUrl() {
   return `http://localhost:${process.env.PORT ?? 3000}`;
 }
 
-export function TRPCProvider({ children }: { children: React.ReactNode }) {
+function TRPCProviderInner({ children }: { children: React.ReactNode }) {
+  const { data: session } = useSession();
+
+  // Update module-level userId when session changes
+  useEffect(() => {
+    currentUserId = session?.user?.id || DEMO_USER_ID;
+  }, [session]);
+
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -33,7 +47,7 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
           transformer: superjson,
           headers() {
             return {
-              // Add auth headers here
+              'x-user-id': currentUserId,
             };
           },
         }),
@@ -45,5 +59,13 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </trpc.Provider>
+  );
+}
+
+export function TRPCProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <SessionProvider>
+      <TRPCProviderInner>{children}</TRPCProviderInner>
+    </SessionProvider>
   );
 }

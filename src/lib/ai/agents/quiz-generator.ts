@@ -1,163 +1,108 @@
 import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { PromptTemplate } from '@langchain/core/prompts';
-import { z } from 'zod';
 import { getModelForAgent } from '../models';
 import {
   QUIZ_GENERATOR_SYSTEM_PROMPT,
-  QUIZ_GENERATION_PROMPT,
-  EXAM_GENERATION_PROMPT,
-  SINGLE_QUESTION_PROMPT,
+  GENERATE_QUIZ_PROMPT,
+  ADAPTIVE_QUESTION_PROMPT,
+  ANALYZE_QUIZ_RESULTS_PROMPT,
+  GENERATE_PRACTICE_SET_PROMPT,
 } from '../prompts/quiz-generator-prompts';
 import type { AgentState } from '../types';
 
-// Question Types
-export const QuestionTypeEnum = z.enum([
-  'multiple_choice',
-  'code_output',
-  'bug_finding',
-  'code_completion',
-  'conceptual',
-  'true_false',
-  'ordering',
-]);
-
-export type QuestionType = z.infer<typeof QuestionTypeEnum>;
-
-// Question Schema
-export const QuestionSchema = z.object({
-  id: z.string(),
-  type: QuestionTypeEnum,
-  question: z.string(),
-  codeBlock: z.string().optional(),
-  options: z.array(z.string()).optional(),
-  correctAnswer: z.string(),
-  explanation: z.string(),
-  hint: z.string(),
-  difficulty: z.number().min(1).max(10),
-  points: z.number().positive(),
-  tags: z.array(z.string()).optional(),
-  timeEstimate: z.number().optional(),
-  section: z.string().optional(),
-  partialCreditRubric: z.string().optional(),
-});
-
-export type Question = z.infer<typeof QuestionSchema>;
-
-// Quiz Schema
-export const QuizSchema = z.object({
-  title: z.string(),
-  description: z.string(),
-  questions: z.array(QuestionSchema),
-  totalPoints: z.number().positive(),
-  passingScore: z.number().min(0).max(100),
-  timeLimit: z.number().positive(),
-  tags: z.array(z.string()).optional(),
-  certificationTier: z.enum(['bronze', 'silver', 'gold', 'platinum']).optional(),
-  sections: z.array(z.string()).optional(),
-  allowReview: z.boolean().optional(),
-  shuffleQuestions: z.boolean().optional(),
-  shuffleOptions: z.boolean().optional(),
-});
-
-export type Quiz = z.infer<typeof QuizSchema>;
-
-// Options interfaces
-export interface QuizGenerationOptions {
-  count: number;
-  difficulty: number;
-  topic: string;
-  questionTypes?: QuestionType[];
-  focusAreas?: string[];
-  timePerQuestion?: number;
-  courseName?: string;
-  moduleName?: string;
-  objectives?: string[];
-  ragContext?: string;
-}
-
-export interface ExamGenerationOptions {
-  count: number;
-  passingScore: number;
-  timeLimit: number;
-  certificationTier: 'bronze' | 'silver' | 'gold' | 'platinum';
-  topic: string;
-  courseName?: string;
-  moduleName?: string;
-  objectives?: string[];
-  ragContext?: string;
-}
-
-export interface SingleQuestionOptions {
-  topic: string;
-  type: QuestionType;
-  difficulty: number;
-  ragContext?: string;
-}
-
-// Prompt templates
 const systemPromptTemplate = PromptTemplate.fromTemplate(QUIZ_GENERATOR_SYSTEM_PROMPT);
-const quizGenTemplate = PromptTemplate.fromTemplate(QUIZ_GENERATION_PROMPT);
-const examGenTemplate = PromptTemplate.fromTemplate(EXAM_GENERATION_PROMPT);
-const singleQuestionTemplate = PromptTemplate.fromTemplate(SINGLE_QUESTION_PROMPT);
+const generateQuizTemplate = PromptTemplate.fromTemplate(GENERATE_QUIZ_PROMPT);
+const adaptiveQuestionTemplate = PromptTemplate.fromTemplate(ADAPTIVE_QUESTION_PROMPT);
+const analyzeResultsTemplate = PromptTemplate.fromTemplate(ANALYZE_QUIZ_RESULTS_PROMPT);
+const practiceSetTemplate = PromptTemplate.fromTemplate(GENERATE_PRACTICE_SET_PROMPT);
 
-/**
- * Extract JSON from AI response content
- */
-function extractJSON<T>(content: string): T | null {
+export interface QuizQuestion {
+  id: string;
+  type: 'multiple_choice' | 'code_output' | 'fill_blank' | 'true_false' | 'short_answer';
+  difficulty: number;
+  question: string;
+  codeSnippet?: string;
+  options?: string[];
+  correctAnswer: string;
+  explanation: string;
+  hint: string;
+  points: number;
+  bloomLevel?: 'remember' | 'understand' | 'apply' | 'analyze';
+  conceptsTested: string[];
+}
+
+export interface Quiz {
+  title: string;
+  description: string;
+  estimatedMinutes: number;
+  questions: QuizQuestion[];
+  passingScore: number;
+  totalPoints: number;
+}
+
+export interface AdaptiveQuestionResult {
+  question: QuizQuestion;
+  rationale: string;
+}
+
+export interface ConceptMastery {
+  score: number;
+  status: 'mastered' | 'developing' | 'needs_work';
+}
+
+export interface QuizRecommendation {
+  type: 'review' | 'practice' | 'advance';
+  topic: string;
+  reason: string;
+}
+
+export interface QuizAnalysis {
+  overallAssessment: string;
+  strengthAreas: string[];
+  weakAreas: string[];
+  conceptMastery: Record<string, ConceptMastery>;
+  recommendations: QuizRecommendation[];
+  nextSteps: string[];
+  encouragement: string;
+  suggestedRetakeIn?: string;
+}
+
+export interface PracticeQuestion extends QuizQuestion {
+  relatedConcept: string;
+}
+
+export interface PracticeSet {
+  practiceSetTitle: string;
+  targetConcepts: string[];
+  questions: PracticeQuestion[];
+  learningTips: string[];
+}
+
+function parseJsonFromResponse<T>(content: string, fallback: T): T {
   try {
-    // Try to find JSON object in the content
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]) as T;
+      return JSON.parse(jsonMatch[0]);
     }
-    return null;
-  } catch {
-    console.error('Failed to parse JSON from content');
-    return null;
-  }
-}
-
-/**
- * Validate quiz data against schema
- */
-function validateQuiz(data: unknown): Quiz | null {
-  try {
-    return QuizSchema.parse(data);
   } catch (error) {
-    console.error('Quiz validation failed:', error);
-    return null;
+    console.error('Failed to parse JSON response:', error);
   }
-}
-
-/**
- * Validate question data against schema
- */
-function validateQuestion(data: unknown): Question | null {
-  try {
-    return QuestionSchema.parse(data);
-  } catch (error) {
-    console.error('Question validation failed:', error);
-    return null;
-  }
+  return fallback;
 }
 
 export const quizGeneratorAgent = {
   name: 'quizGenerator',
 
-  /**
-   * Invoke the agent for conversational quiz generation requests
-   */
   async invoke(state: AgentState): Promise<{
     messages: AIMessage[];
     metadata: Record<string, unknown>;
   }> {
-    const model = getModelForAgent('quizGenerator');
+    const model = getModelForAgent('assessor'); // Use assessor model for quiz generation
 
     const systemPrompt = await systemPromptTemplate.format({
       level: state.userProfile.level,
-      courseName: state.lessonContext.courseId || 'Current Course',
-      moduleName: state.lessonContext.topic || 'Current Module',
-      objectives: state.lessonContext.objectives.join(', ') || 'General understanding',
+      topic: state.lessonContext.topic,
+      objectives: state.lessonContext.objectives.join(', '),
       ragContext: state.ragContext || 'No specific content loaded.',
     });
 
@@ -166,195 +111,174 @@ export const quizGeneratorAgent = {
       ...state.messages,
     ]);
 
-    const content = response.content.toString();
-
-    // Try to extract quiz data if the response contains JSON
-    const quizData = extractJSON<Quiz>(content);
-    const hasQuizData = quizData !== null;
-
     return {
-      messages: [new AIMessage(content)],
+      messages: [new AIMessage(response.content.toString())],
       metadata: {
         agentType: 'quizGenerator',
-        generatedQuiz: hasQuizData ? quizData : undefined,
-        hasStructuredOutput: hasQuizData,
       },
     };
   },
 
-  /**
-   * Generate a complete quiz with specified parameters
-   */
-  async generateQuiz(options: QuizGenerationOptions): Promise<Quiz | null> {
-    const model = getModelForAgent('quizGenerator');
-
-    const {
-      count,
-      difficulty,
-      topic,
-      questionTypes = ['multiple_choice', 'code_output', 'conceptual'],
-      focusAreas = [],
-      timePerQuestion = 60,
-      courseName = 'Course',
-      moduleName = 'Module',
-      objectives = [],
-      ragContext = '',
-    } = options;
-
-    // Format system prompt
-    const systemPrompt = await systemPromptTemplate.format({
-      level: difficulty * 10, // Convert 1-10 to 1-100 scale
-      courseName,
-      moduleName,
-      objectives: objectives.join(', ') || topic,
-      ragContext: ragContext || 'No specific content loaded.',
-    });
-
-    // Format quiz generation prompt
-    const quizPrompt = await quizGenTemplate.format({
-      count,
-      difficulty,
-      topic,
-      questionTypes: questionTypes.join(', '),
-      focusAreas: focusAreas.length > 0 ? focusAreas.join(', ') : topic,
-      timePerQuestion,
-    });
-
-    const response = await model.invoke([
-      new SystemMessage(systemPrompt),
-      new HumanMessage(quizPrompt),
-    ]);
-
-    const content = response.content.toString();
-    const quizData = extractJSON<Quiz>(content);
-
-    if (!quizData) {
-      console.error('Failed to extract quiz JSON from response');
-      return null;
-    }
-
-    return validateQuiz(quizData);
-  },
-
-  /**
-   * Generate a certification exam with specified parameters
-   */
-  async generateExam(options: ExamGenerationOptions): Promise<Quiz | null> {
-    const model = getModelForAgent('quizGenerator');
-
-    const {
-      count,
-      passingScore,
-      timeLimit,
-      certificationTier,
-      topic,
-      courseName = 'Certification',
-      moduleName = 'Exam',
-      objectives = [],
-      ragContext = '',
-    } = options;
-
-    // Determine difficulty based on tier
-    const tierDifficulty = {
-      bronze: 30,
-      silver: 50,
-      gold: 70,
-      platinum: 90,
-    };
-
-    // Format system prompt
-    const systemPrompt = await systemPromptTemplate.format({
-      level: tierDifficulty[certificationTier],
-      courseName,
-      moduleName,
-      objectives: objectives.join(', ') || `${certificationTier} certification in ${topic}`,
-      ragContext: ragContext || 'No specific content loaded.',
-    });
-
-    // Format exam generation prompt
-    const examPrompt = await examGenTemplate.format({
-      count,
-      passingScore,
-      timeLimit,
-      certificationTier,
-    });
-
-    const response = await model.invoke([
-      new SystemMessage(systemPrompt),
-      new HumanMessage(examPrompt),
-    ]);
-
-    const content = response.content.toString();
-    const examData = extractJSON<Quiz>(content);
-
-    if (!examData) {
-      console.error('Failed to extract exam JSON from response');
-      return null;
-    }
-
-    // Add certification tier to the exam data if not present
-    const examWithTier = {
-      ...examData,
-      certificationTier,
-    };
-
-    return validateQuiz(examWithTier);
-  },
-
-  /**
-   * Generate a single question with specified parameters
-   */
-  async generateQuestion(
+  async generateQuiz(
     topic: string,
-    type: QuestionType,
-    difficulty: number,
-    ragContext?: string
-  ): Promise<Question | null> {
-    const model = getModelForAgent('quizGenerator');
+    content: string,
+    options: {
+      studentLevel?: number;
+      previousScore?: number;
+      questionCount?: number;
+      focusAreas?: string[];
+    } = {}
+  ): Promise<Quiz> {
+    const model = getModelForAgent('assessor');
+    const {
+      studentLevel = 1,
+      previousScore = 0,
+      questionCount = 10,
+      focusAreas = [],
+    } = options;
 
-    const prompt = await singleQuestionTemplate.format({
+    const prompt = await generateQuizTemplate.format({
       topic,
-      type,
-      difficulty,
-      ragContext: ragContext ? `\nContext:\n${ragContext}` : '',
+      content: content.slice(0, 4000), // Limit content length
+      level: studentLevel,
+      previousScore,
+      questionCount,
+      focusAreas: focusAreas.join(', ') || 'all topics',
     });
 
     const response = await model.invoke([
-      new SystemMessage(
-        'You are a question generator for an educational platform. Generate high-quality questions in the exact JSON format specified.'
-      ),
+      new SystemMessage('You are a quiz generator. Output valid JSON only.'),
       new HumanMessage(prompt),
     ]);
 
-    const content = response.content.toString();
-    const questionData = extractJSON<Question>(content);
-
-    if (!questionData) {
-      console.error('Failed to extract question JSON from response');
-      return null;
-    }
-
-    return validateQuestion(questionData);
+    return parseJsonFromResponse<Quiz>(response.content.toString(), {
+      title: `Quiz: ${topic}`,
+      description: 'Unable to generate quiz',
+      estimatedMinutes: 10,
+      questions: [],
+      passingScore: 70,
+      totalPoints: 0,
+    });
   },
 
-  /**
-   * Generate multiple questions in batch
-   */
-  async generateQuestionBatch(
+  async generateAdaptiveQuestion(
+    previousQuestion: string,
+    studentAnswer: string,
+    wasCorrect: boolean,
+    studentLevel: number,
+    concepts: string[]
+  ): Promise<AdaptiveQuestionResult> {
+    const model = getModelForAgent('assessor');
+
+    const prompt = await adaptiveQuestionTemplate.format({
+      previousQuestion,
+      studentAnswer,
+      wasCorrect: wasCorrect ? 'yes' : 'no',
+      level: studentLevel,
+      concepts: concepts.join(', '),
+    });
+
+    const response = await model.invoke([
+      new SystemMessage('Generate an adaptive follow-up question. Output valid JSON only.'),
+      new HumanMessage(prompt),
+    ]);
+
+    return parseJsonFromResponse<AdaptiveQuestionResult>(response.content.toString(), {
+      question: {
+        id: 'adaptive-1',
+        type: 'multiple_choice',
+        difficulty: studentLevel,
+        question: 'Unable to generate question',
+        correctAnswer: '',
+        explanation: '',
+        hint: '',
+        points: 10,
+        conceptsTested: concepts,
+      },
+      rationale: 'Unable to generate rationale',
+    });
+  },
+
+  async analyzeQuizResults(
     topic: string,
-    types: QuestionType[],
-    difficulty: number,
-    ragContext?: string
-  ): Promise<Question[]> {
-    const questions: Question[] = [];
+    questionsWithAnswers: Array<{
+      question: QuizQuestion;
+      studentAnswer: string;
+      isCorrect: boolean;
+    }>,
+    score: number,
+    totalPoints: number,
+    timeTaken: number
+  ): Promise<QuizAnalysis> {
+    const model = getModelForAgent('assessor');
 
-    for (const type of types) {
-      const question = await this.generateQuestion(topic, type, difficulty, ragContext);
-      if (question) {
-        questions.push(question);
-      }
-    }
+    const formattedQA = questionsWithAnswers
+      .map(
+        (qa, i) =>
+          `Q${i + 1}: ${qa.question.question}\nStudent Answer: ${qa.studentAnswer}\nCorrect: ${qa.isCorrect ? 'Yes' : 'No'}\nCorrect Answer: ${qa.question.correctAnswer}\nConcepts: ${qa.question.conceptsTested.join(', ')}`
+      )
+      .join('\n\n');
 
-    return questions;
+    const prompt = await analyzeResultsTemplate.format({
+      topic,
+      questionsWithAnswers: formattedQA,
+      score,
+      totalPoints,
+      timeTaken,
+    });
+
+    const response = await model.invoke([
+      new SystemMessage('Analyze quiz results and provide comprehensive feedback. Output valid JSON only.'),
+      new HumanMessage(prompt),
+    ]);
+
+    return parseJsonFromResponse<QuizAnalysis>(response.content.toString(), {
+      overallAssessment: 'Unable to analyze results',
+      strengthAreas: [],
+      weakAreas: [],
+      conceptMastery: {},
+      recommendations: [],
+      nextSteps: [],
+      encouragement: 'Keep learning!',
+    });
+  },
+
+  async generatePracticeSet(
+    weakAreas: string[],
+    studentLevel: number,
+    content: string
+  ): Promise<PracticeSet> {
+    const model = getModelForAgent('assessor');
+
+    const prompt = await practiceSetTemplate.format({
+      weakAreas: weakAreas.join(', '),
+      level: studentLevel,
+      content: content.slice(0, 3000),
+    });
+
+    const response = await model.invoke([
+      new SystemMessage('Generate a practice question set. Output valid JSON only.'),
+      new HumanMessage(prompt),
+    ]);
+
+    return parseJsonFromResponse<PracticeSet>(response.content.toString(), {
+      practiceSetTitle: `Practice: ${weakAreas[0] || 'Mixed Topics'}`,
+      targetConcepts: weakAreas,
+      questions: [],
+      learningTips: [],
+    });
+  },
+
+  async generateQuizFromRAG(
+    topic: string,
+    ragContext: string,
+    studentLevel: number,
+    questionCount: number = 5
+  ): Promise<Quiz> {
+    // Convenience method that uses RAG context directly
+    return this.generateQuiz(topic, ragContext, {
+      studentLevel,
+      questionCount,
+    });
   },
 };

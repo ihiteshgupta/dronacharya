@@ -1,83 +1,112 @@
-import { AIMessage, SystemMessage, HumanMessage } from '@langchain/core/messages';
+import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { getModelForAgent } from '../models';
 import {
   PROJECT_GUIDE_SYSTEM_PROMPT,
-  MILESTONE_CREATION_PROMPT,
+  PROJECT_PLAN_PROMPT,
+  ARCHITECTURE_REVIEW_PROMPT,
   MILESTONE_REVIEW_PROMPT,
-  SUBMISSION_EVALUATION_PROMPT,
-  PROJECT_SUGGESTION_PROMPT,
+  DEBUGGING_GUIDE_PROMPT,
+  DEPLOYMENT_GUIDE_PROMPT,
 } from '../prompts/project-guide-prompts';
 import type { AgentState } from '../types';
 
-// Type definitions for milestone tracking
-export interface ProjectMilestone {
-  id: string;
+const systemPromptTemplate = PromptTemplate.fromTemplate(PROJECT_GUIDE_SYSTEM_PROMPT);
+const projectPlanTemplate = PromptTemplate.fromTemplate(PROJECT_PLAN_PROMPT);
+const architectureReviewTemplate = PromptTemplate.fromTemplate(ARCHITECTURE_REVIEW_PROMPT);
+const milestoneReviewTemplate = PromptTemplate.fromTemplate(MILESTONE_REVIEW_PROMPT);
+const debuggingGuideTemplate = PromptTemplate.fromTemplate(DEBUGGING_GUIDE_PROMPT);
+const deploymentGuideTemplate = PromptTemplate.fromTemplate(DEPLOYMENT_GUIDE_PROMPT);
+
+export interface ProjectTask {
   name: string;
   description: string;
-  criteria: string[];
-  status: 'pending' | 'in_progress' | 'completed' | 'needs_revision';
-  estimatedHours: number;
+  skills: string[];
 }
 
-// Type definitions for project submission
-export interface ProjectSubmission {
-  projectId: string;
-  userId: string;
-  githubUrl: string;
-  deployedUrl?: string;
+export interface ProjectMilestone {
+  name: string;
   description: string;
-  technologiesUsed: string[];
+  estimatedDays: number;
+  tasks: ProjectTask[];
+  deliverables: string[];
+  checkpoints: string[];
 }
 
-// Type definitions for evaluation result
-export interface EvaluationResult {
-  scores: {
-    codeQuality: number;
-    functionality: number;
-    testing: number;
-    documentation: number;
-    deployment: number;
+export interface ProjectPlan {
+  overview: string;
+  techStack: string[];
+  milestones: ProjectMilestone[];
+  evaluationCriteria: {
+    codeQuality: string;
+    functionality: string;
+    testing: string;
+    documentation: string;
+    deployment: string;
   };
-  totalScore: number;
-  passed: boolean;
-  feedback: string;
+  resources: string[];
+  tips: string[];
+}
+
+export interface ArchitectureReview {
+  score: number;
   strengths: string[];
-  improvements: string[];
-  recommendation: 'approve' | 'revise' | 'reject';
+  concerns: string[];
+  questions: string[];
+  suggestions: string[];
+  patterns: string[];
+  scalabilityNotes: string;
+  maintainabilityNotes: string;
 }
 
-// Type definitions for milestone review response
-export interface MilestoneReviewResponse {
-  approved: boolean;
-  feedback: string;
-  improvements: string[];
+export interface MilestoneReview {
+  status: 'approved' | 'needs_work' | 'in_progress';
+  completionPercentage: number;
+  feedback: {
+    completed: string[];
+    missing: string[];
+    improvements: string[];
+  };
   nextSteps: string[];
+  encouragement: string;
 }
 
-// Type definitions for project suggestion response
-export interface ProjectSuggestion {
-  title: string;
+export interface DebuggingGuide {
+  problemAnalysis: string;
+  investigationQuestions: string[];
+  debuggingSteps: string[];
+  hints: string[];
+  conceptsToReview: string[];
+  commonMistakes: string[];
+}
+
+export interface DeploymentChecklist {
+  item: string;
   description: string;
-  technologies: string[];
-  estimatedHours: number;
-  learningOutcomes: string[];
+  priority: 'required' | 'recommended' | 'optional';
 }
 
-export interface ProjectSuggestionResponse {
-  projects: ProjectSuggestion[];
+export interface DeploymentGuide {
+  checklist: DeploymentChecklist[];
+  environmentVariables: string[];
+  cicdSuggestions: string[];
+  securityChecklist: string[];
+  monitoringSuggestions: string[];
+  commonIssues: string[];
+  resources: string[];
 }
 
-// Helper function to extract JSON from response
-function extractJsonFromResponse<T>(response: string): T {
-  const jsonMatch = response.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('No JSON object found in response');
+function parseJsonFromResponse<T>(content: string, fallback: T): T {
+  try {
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+  } catch (error) {
+    console.error('Failed to parse JSON response:', error);
   }
-  return JSON.parse(jsonMatch[0]) as T;
+  return fallback;
 }
-
-const systemPromptTemplate = PromptTemplate.fromTemplate(PROJECT_GUIDE_SYSTEM_PROMPT);
 
 export const projectGuideAgent = {
   name: 'projectGuide',
@@ -115,159 +144,146 @@ export const projectGuideAgent = {
     };
   },
 
-  /**
-   * Create milestones for a project based on requirements and difficulty
-   */
-  async createMilestones(
-    projectRequirements: string,
-    difficulty: 'beginner' | 'intermediate' | 'advanced'
-  ): Promise<ProjectMilestone[]> {
-    try {
-      const model = getModelForAgent('projectGuide');
-      const promptTemplate = PromptTemplate.fromTemplate(MILESTONE_CREATION_PROMPT);
+  async generateProjectPlan(
+    projectName: string,
+    description: string,
+    studentLevel: number,
+    timeAvailable: string
+  ): Promise<ProjectPlan> {
+    const model = getModelForAgent('projectGuide');
 
-      const prompt = await promptTemplate.format({
-        projectRequirements,
-        difficulty,
-      });
+    const prompt = await projectPlanTemplate.format({
+      projectName,
+      description,
+      level: studentLevel,
+      timeAvailable,
+    });
 
-      const response = await model.invoke([
-        new SystemMessage(prompt),
-        new HumanMessage(
-          'Please create a set of milestones for this project based on the requirements and difficulty level.'
-        ),
-      ]);
+    const response = await model.invoke([new HumanMessage(prompt)]);
 
-      const responseText = response.content.toString();
-      const parsed = extractJsonFromResponse<{ milestones: ProjectMilestone[] }>(responseText);
-
-      return parsed.milestones;
-    } catch (error) {
-      console.error('Error in createMilestones:', error);
-      throw new Error(
-        `Failed to create milestones: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return parseJsonFromResponse<ProjectPlan>(response.content.toString(), {
+      overview: 'Unable to generate project plan',
+      techStack: [],
+      milestones: [],
+      evaluationCriteria: {
+        codeQuality: 'Clean, readable code',
+        functionality: 'All features working',
+        testing: '70%+ coverage',
+        documentation: 'README and API docs',
+        deployment: 'Live URL',
+      },
+      resources: [],
+      tips: [],
+    });
   },
 
-  /**
-   * Review a milestone submission and provide feedback
-   */
+  async reviewArchitecture(
+    projectName: string,
+    techStack: string[],
+    architecture: string,
+    fileStructure: string
+  ): Promise<ArchitectureReview> {
+    const model = getModelForAgent('projectGuide');
+
+    const prompt = await architectureReviewTemplate.format({
+      projectName,
+      techStack: techStack.join(', '),
+      architecture,
+      fileStructure,
+    });
+
+    const response = await model.invoke([new HumanMessage(prompt)]);
+
+    return parseJsonFromResponse<ArchitectureReview>(response.content.toString(), {
+      score: 50,
+      strengths: [],
+      concerns: [],
+      questions: [],
+      suggestions: [],
+      patterns: [],
+      scalabilityNotes: 'Unable to assess',
+      maintainabilityNotes: 'Unable to assess',
+    });
+  },
+
   async reviewMilestone(
-    milestone: ProjectMilestone,
-    submissionNotes: string,
-    codeSnippets?: string
-  ): Promise<MilestoneReviewResponse> {
-    try {
-      const model = getModelForAgent('projectGuide');
-      const promptTemplate = PromptTemplate.fromTemplate(MILESTONE_REVIEW_PROMPT);
+    projectName: string,
+    milestoneName: string,
+    requirements: string,
+    submission: string
+  ): Promise<MilestoneReview> {
+    const model = getModelForAgent('projectGuide');
 
-      const prompt = await promptTemplate.format({
-        milestoneName: milestone.name,
-        milestoneDescription: milestone.description,
-        milestoneCriteria: milestone.criteria.join('\n- '),
-        submissionNotes,
-        codeSnippets: codeSnippets || 'No code snippets provided',
-      });
+    const prompt = await milestoneReviewTemplate.format({
+      projectName,
+      milestoneName,
+      requirements,
+      submission,
+    });
 
-      const response = await model.invoke([
-        new SystemMessage(prompt),
-        new HumanMessage(
-          'Please review this milestone submission and provide feedback.'
-        ),
-      ]);
+    const response = await model.invoke([new HumanMessage(prompt)]);
 
-      const responseText = response.content.toString();
-      return extractJsonFromResponse<MilestoneReviewResponse>(responseText);
-    } catch (error) {
-      console.error('Error in reviewMilestone:', error);
-      throw new Error(
-        `Failed to review milestone: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return parseJsonFromResponse<MilestoneReview>(response.content.toString(), {
+      status: 'in_progress',
+      completionPercentage: 0,
+      feedback: { completed: [], missing: [], improvements: [] },
+      nextSteps: [],
+      encouragement: 'Keep going!',
+    });
   },
 
-  /**
-   * Evaluate a complete project submission
-   */
-  async evaluateSubmission(
-    submission: ProjectSubmission
-  ): Promise<EvaluationResult> {
-    try {
-      const model = getModelForAgent('projectGuide');
-      const promptTemplate = PromptTemplate.fromTemplate(SUBMISSION_EVALUATION_PROMPT);
+  async guideDebugging(
+    projectName: string,
+    errorDescription: string,
+    codeContext: string,
+    attemptedSolutions: string
+  ): Promise<DebuggingGuide> {
+    const model = getModelForAgent('projectGuide');
 
-      const prompt = await promptTemplate.format({
-        projectId: submission.projectId,
-        githubUrl: submission.githubUrl,
-        deployedUrl: submission.deployedUrl || 'Not provided',
-        description: submission.description,
-        technologiesUsed: submission.technologiesUsed.join(', '),
-      });
+    const prompt = await debuggingGuideTemplate.format({
+      projectName,
+      errorDescription,
+      codeContext,
+      attemptedSolutions,
+    });
 
-      const response = await model.invoke([
-        new SystemMessage(prompt),
-        new HumanMessage(
-          'Please evaluate this project submission according to the rubric.'
-        ),
-      ]);
+    const response = await model.invoke([new HumanMessage(prompt)]);
 
-      const responseText = response.content.toString();
-      const result = extractJsonFromResponse<EvaluationResult>(responseText);
-
-      // Ensure totalScore calculation is correct
-      const calculatedTotal =
-        result.scores.codeQuality +
-        result.scores.functionality +
-        result.scores.testing +
-        result.scores.documentation +
-        result.scores.deployment;
-
-      return {
-        ...result,
-        totalScore: calculatedTotal,
-        passed: calculatedTotal >= 70,
-      };
-    } catch (error) {
-      console.error('Error in evaluateSubmission:', error);
-      throw new Error(
-        `Failed to evaluate submission: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return parseJsonFromResponse<DebuggingGuide>(response.content.toString(), {
+      problemAnalysis: 'Unable to analyze',
+      investigationQuestions: [],
+      debuggingSteps: [],
+      hints: [],
+      conceptsToReview: [],
+      commonMistakes: [],
+    });
   },
 
-  /**
-   * Suggest projects based on student skills, interests, and difficulty preference
-   */
-  async suggestProjects(
-    skills: string[],
-    interests: string[],
-    difficulty: 'beginner' | 'intermediate' | 'advanced'
-  ): Promise<ProjectSuggestionResponse> {
-    try {
-      const model = getModelForAgent('projectGuide');
-      const promptTemplate = PromptTemplate.fromTemplate(PROJECT_SUGGESTION_PROMPT);
+  async generateDeploymentGuide(
+    projectName: string,
+    techStack: string[],
+    platform: string,
+    currentStatus: string
+  ): Promise<DeploymentGuide> {
+    const model = getModelForAgent('projectGuide');
 
-      const prompt = await promptTemplate.format({
-        skills: skills.join(', ') || 'Not specified',
-        interests: interests.join(', ') || 'Not specified',
-        difficulty,
-      });
+    const prompt = await deploymentGuideTemplate.format({
+      projectName,
+      techStack: techStack.join(', '),
+      platform,
+      currentStatus,
+    });
 
-      const response = await model.invoke([
-        new SystemMessage(prompt),
-        new HumanMessage(
-          'Please suggest portfolio projects based on my profile.'
-        ),
-      ]);
+    const response = await model.invoke([new HumanMessage(prompt)]);
 
-      const responseText = response.content.toString();
-      return extractJsonFromResponse<ProjectSuggestionResponse>(responseText);
-    } catch (error) {
-      console.error('Error in suggestProjects:', error);
-      throw new Error(
-        `Failed to suggest projects: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return parseJsonFromResponse<DeploymentGuide>(response.content.toString(), {
+      checklist: [],
+      environmentVariables: [],
+      cicdSuggestions: [],
+      securityChecklist: [],
+      monitoringSuggestions: [],
+      commonIssues: [],
+      resources: [],
+    });
   },
 };

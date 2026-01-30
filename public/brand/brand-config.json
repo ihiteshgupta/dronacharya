@@ -1,0 +1,81 @@
+{
+  "name": "Dronacharya",
+  "tagline": "AI that teaches like a Guru",
+  "description": "AI-powered learning platform with personalized tutoring",
+  "parent": "Margadeshaka",
+
+  "colors": {
+    "primary": {
+      "name": "Deep Indigo",
+      "hex": "#1e1b4b",
+      "rgb": "30, 27, 75",
+      "hsl": "243, 47%, 20%"
+    },
+    "secondary": {
+      "name": "Saffron Gold",
+      "hex": "#f59e0b",
+      "rgb": "245, 158, 11",
+      "hsl": "38, 92%, 50%"
+    },
+    "accent": {
+      "name": "Teal",
+      "hex": "#14b8a6",
+      "rgb": "20, 184, 166",
+      "hsl": "173, 80%, 40%"
+    },
+    "background": {
+      "dark": "#0a0a0f",
+      "light": "#fafafa"
+    },
+    "gradients": {
+      "brand": "linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #1e1b4b 100%)",
+      "gold": "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+      "success": "linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)"
+    }
+  },
+
+  "typography": {
+    "fontFamily": {
+      "sans": "Inter, system-ui, sans-serif",
+      "display": "Plus Jakarta Sans, Inter, system-ui, sans-serif",
+      "mono": "JetBrains Mono, ui-monospace, monospace"
+    },
+    "logoFont": "Plus Jakarta Sans"
+  },
+
+  "logo": {
+    "concept": "Bow and arrow (Drona's weapon) combined with neural network nodes",
+    "symbolism": {
+      "bow": "Precision, mastery, guidance",
+      "arrow": "Focused learning, goals, direction",
+      "nodes": "AI, interconnected knowledge, neural networks"
+    },
+    "files": {
+      "svg": "/brand/logo.svg",
+      "svgLight": "/brand/logo-light.svg",
+      "favicon": "/favicon.ico",
+      "ogImage": "/brand/og-image.png"
+    }
+  },
+
+  "social": {
+    "twitter": "@DronacharyaAI",
+    "github": "margadeshaka/dronacharya",
+    "website": "https://dronacharya.ai"
+  },
+
+  "metadata": {
+    "title": "Dronacharya - AI that teaches like a Guru",
+    "description": "AI-powered learning platform with personalized tutoring. Master programming, data science, and AI/ML with guided learning from intelligent agents.",
+    "keywords": [
+      "AI tutor",
+      "learn programming",
+      "data science",
+      "machine learning",
+      "personalized learning",
+      "Dronacharya",
+      "online learning",
+      "AI education"
+    ]
+  }
+}

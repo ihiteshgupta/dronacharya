@@ -1,9 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -14,11 +11,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Search, Settings, LogOut, User, Sparkles } from 'lucide-react';
+import { Bell, Search, Settings, LogOut, User } from 'lucide-react';
+import Image from 'next/image';
 import { XPDisplay } from '@/components/gamification/xp-display';
 import { StreakDisplay } from '@/components/gamification/streak-display';
-import { NotificationBell } from '@/components/notifications';
-import { SearchDialog } from '@/components/search';
 
 interface HeaderProps {
   user: {
@@ -32,24 +28,25 @@ interface HeaderProps {
 
 function Logo() {
   return (
-    <Link href="/" className="flex items-center gap-2 group">
-      {/* Logo Icon - Bow and Arrow representing Dronacharya */}
-      <div className="relative flex items-center justify-center w-9 h-9 rounded-xl gradient-brand shadow-lg shadow-primary/25 group-hover:shadow-primary/40 transition-shadow duration-300">
-        <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-          <path d="M12 8v8" />
-          <path d="M8 12h8" />
-          <circle cx="12" cy="12" r="2" fill="currentColor" />
-        </svg>
-        <div className="absolute inset-0 rounded-xl bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+    <Link href="/" className="flex items-center gap-2.5 group">
+      {/* Logo Icon */}
+      <div className="relative flex items-center justify-center w-10 h-10 rounded-xl shadow-lg shadow-indigo-500/25 group-hover:shadow-indigo-500/40 transition-shadow duration-300 overflow-hidden">
+        <Image
+          src="/brand/logo.svg"
+          alt="Dronacharya Logo"
+          width={40}
+          height={40}
+          className="w-full h-full"
+        />
+        <div className="absolute inset-0 rounded-xl bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
       {/* Logo Text */}
       <div className="flex flex-col">
-        <span className="font-bold text-xl tracking-tight gradient-text">
+        <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-amber-500 to-amber-600 bg-clip-text text-transparent">
           Dronacharya
         </span>
-        <span className="text-[10px] font-medium text-muted-foreground -mt-1 tracking-widest uppercase">
-          Learn with AI
+        <span className="text-[10px] font-medium text-muted-foreground -mt-0.5 tracking-widest uppercase">
+          AI Guru
         </span>
       </div>
     </Link>
@@ -57,105 +54,87 @@ function Logo() {
 }
 
 export function Header({ user, xp, streak }: HeaderProps) {
-  const router = useRouter();
-  const [searchOpen, setSearchOpen] = useState(false);
-
-  // Keyboard shortcut for search (Cmd+K / Ctrl+K)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setSearchOpen(true);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  const handleSignOut = async () => {
-    await signOut({ callbackUrl: '/auth/login' });
-  };
-
   return (
-    <>
-      <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center">
-          <div className="mr-4 flex">
-            <Logo />
+    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center">
+        <div className="mr-4 flex">
+          <Logo />
+        </div>
+
+        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+          {/* Search Bar */}
+          <div className="w-full flex-1 md:w-auto md:flex-none">
+            <Button
+              variant="outline"
+              className="w-full justify-start text-muted-foreground md:w-72 h-10 bg-muted/50 border-transparent hover:bg-muted hover:border-border transition-all duration-200"
+            >
+              <Search className="mr-2 h-4 w-4" />
+              <span>Search courses...</span>
+              <kbd className="ml-auto pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-background px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+                <span className="text-xs">⌘</span>K
+              </kbd>
+            </Button>
           </div>
 
-          <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-            {/* Search Bar */}
-            <div className="w-full flex-1 md:w-auto md:flex-none">
-              <Button
-                variant="outline"
-                onClick={() => setSearchOpen(true)}
-                className="w-full justify-start text-muted-foreground md:w-72 h-10 bg-muted/50 border-transparent hover:bg-muted hover:border-border transition-all duration-200"
-              >
-                <Search className="mr-2 h-4 w-4" />
-                <span>Search courses...</span>
-                <kbd className="ml-auto pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-background px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
-                  <span className="text-xs">⌘</span>K
-                </kbd>
-              </Button>
+          <div className="flex items-center gap-3">
+            {/* Gamification Stats */}
+            <div className="hidden sm:flex items-center gap-2">
+              <XPDisplay xp={xp} />
+              <StreakDisplay streak={streak} />
             </div>
 
-            <div className="flex items-center gap-3">
-              {/* Gamification Stats */}
-              <div className="hidden sm:flex items-center gap-2">
-                <XPDisplay xp={xp} />
-                <StreakDisplay streak={streak} />
-              </div>
+            {/* Notifications */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative hover:bg-primary/10 transition-colors"
+            >
+              <Bell className="h-5 w-5" />
+              {/* Notification dot */}
+              <span className="absolute top-2 right-2 w-2 h-2 bg-rose rounded-full animate-pulse" />
+            </Button>
 
-              {/* Notifications */}
-              <NotificationBell />
-
-              {/* User Menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="relative h-10 w-10 rounded-full ring-2 ring-transparent hover:ring-primary/20 transition-all duration-200"
-                  >
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage src={user.avatarUrl} alt={user.name} />
-                      <AvatarFallback className="gradient-brand text-white font-semibold">
-                        {user.name.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-semibold leading-none">{user.name}</p>
-                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer" onClick={() => router.push('/profile')}>
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer" onClick={() => router.push('/settings')}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            {/* User Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="relative h-10 w-10 rounded-full ring-2 ring-transparent hover:ring-primary/20 transition-all duration-200"
+                >
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={user.avatarUrl} alt={user.name} />
+                    <AvatarFallback className="gradient-brand text-white font-semibold">
+                      {user.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-semibold leading-none">{user.name}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
-      </header>
-
-      {/* Search Dialog */}
-      <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
-    </>
+      </div>
+    </header>
   );
 }

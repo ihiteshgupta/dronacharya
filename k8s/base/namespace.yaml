@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: learnflow
+  name: dronacharya
   labels:
-    app.kubernetes.io/name: learnflow
-    app.kubernetes.io/part-of: learnflow-ai
+    app.kubernetes.io/name: dronacharya
+    app.kubernetes.io/part-of: dronacharya

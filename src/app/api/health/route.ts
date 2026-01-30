@@ -6,21 +6,12 @@ export async function GET() {
   const health = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.0.0',
-    uptime: process.uptime(),
+    version: process.env.npm_package_version || '0.1.0',
+    environment: process.env.NODE_ENV || 'development',
     checks: {
-      memory: getMemoryStatus(),
+      app: 'ok',
     },
   };
 
-  return NextResponse.json(health, { status: 200 });
-}
-
-function getMemoryStatus() {
-  const used = process.memoryUsage();
-  return {
-    heapUsed: Math.round(used.heapUsed / 1024 / 1024) + 'MB',
-    heapTotal: Math.round(used.heapTotal / 1024 / 1024) + 'MB',
-    rss: Math.round(used.rss / 1024 / 1024) + 'MB',
-  };
+  return NextResponse.json(health);
 }

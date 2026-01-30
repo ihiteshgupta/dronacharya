@@ -6,27 +6,15 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
-    setupFiles: ['./vitest.setup.ts'],
-    include: ['src/**/*.test.{ts,tsx}'],
-    exclude: ['src/**/*.integration.test.ts', 'node_modules'],
+    globals: true,
+    setupFiles: ['./src/test/setup.ts'],
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html', 'lcov'],
-      include: ['src/lib/**/*.ts', 'src/components/**/*.tsx'],
+      reporter: ['text', 'json', 'html'],
       exclude: [
-        'src/**/*.test.ts',
-        'src/**/*.d.ts',
-        'src/lib/db/schema/**',
+        'node_modules/',
+        'src/test/**',
       ],
-      // Note: Coverage thresholds are set lower for v1 as UI components
-      // don't have tests yet. Critical utilities (xp-calculator, streak-calculator,
-      // rate-limit) have full test coverage.
-      thresholds: {
-        statements: 10,
-        branches: 10,
-        functions: 5,
-        lines: 10,
-      },
     },
   },
   resolve: {

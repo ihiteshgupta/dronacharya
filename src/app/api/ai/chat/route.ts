@@ -1,8 +1,7 @@
 import { HumanMessage, AIMessage } from '@langchain/core/messages';
+import { eq, and } from 'drizzle-orm';
 import { chat } from '@/lib/ai/orchestrator';
 import { db, users, userProfiles, lessons, aiSessions, aiMessages } from '@/lib/db';
-import { auth } from '@/lib/auth';
-import { eq, and } from 'drizzle-orm';
 import type { TeachingMode } from '@/lib/ai/types';
 
 export const runtime = 'nodejs';
@@ -10,9 +9,8 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
-    // Get user from NextAuth session
-    const authSession = await auth();
-    const userId = authSession?.user?.id;
+    // Get user from header (replace with proper auth)
+    const userId = req.headers.get('x-user-id');
     if (!userId) {
       return new Response('Unauthorized', { status: 401 });
     }
@@ -56,12 +54,11 @@ export async function POST(req: Request) {
       if (lesson) {
         const content = lesson.contentJson as { objectives?: string[] } | null;
         const aiConfig = lesson.aiConfig as { mode?: string } | null;
-        const moduleData = lesson.module as { courseId?: string } | undefined;
 
         lessonContext = {
           lessonId: lesson.id,
           topic: lesson.name,
-          courseId: moduleData?.courseId || '',
+          courseId: lesson.module?.courseId || '',
           objectives: content?.objectives || [],
           teachingMode: (aiConfig?.mode as TeachingMode) || 'adaptive',
         };
@@ -76,17 +73,17 @@ export async function POST(req: Request) {
     const userMessage = messages[messages.length - 1].content;
 
     // Get or create AI session
-    const existingAiSession = await db.query.aiSessions.findFirst({
+    const session = await db.query.aiSessions.findFirst({
       where: and(
         eq(aiSessions.userId, userId),
-        eq(aiSessions.status, 'active'),
-        lessonId ? eq(aiSessions.lessonId, lessonId) : undefined
+        eq(aiSessions.lessonId, lessonId || ''),
+        eq(aiSessions.status, 'active')
       ),
     });
 
-    const sessionId = existingAiSession?.id || crypto.randomUUID();
+    const sessionId = session?.id || crypto.randomUUID();
 
-    if (!existingAiSession) {
+    if (!session) {
       await db.insert(aiSessions).values({
         id: sessionId,
         userId,
