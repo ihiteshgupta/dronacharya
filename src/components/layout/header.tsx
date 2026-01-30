@@ -11,7 +11,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Search, Settings, LogOut, User, Sparkles } from 'lucide-react';
+import { Bell, Search, Settings, LogOut, User } from 'lucide-react';
+import Image from 'next/image';
 import { XPDisplay } from '@/components/gamification/xp-display';
 import { StreakDisplay } from '@/components/gamification/streak-display';
 
@@ -27,18 +28,24 @@ interface HeaderProps {
 
 function Logo() {
   return (
-    <Link href="/" className="flex items-center gap-2 group">
+    <Link href="/" className="flex items-center gap-2.5 group">
       {/* Logo Icon */}
-      <div className="relative flex items-center justify-center w-9 h-9 rounded-xl gradient-brand shadow-lg shadow-primary/25 group-hover:shadow-primary/40 transition-shadow duration-300">
-        <Sparkles className="w-5 h-5 text-white" />
-        <div className="absolute inset-0 rounded-xl bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="relative flex items-center justify-center w-10 h-10 rounded-xl shadow-lg shadow-indigo-500/25 group-hover:shadow-indigo-500/40 transition-shadow duration-300 overflow-hidden">
+        <Image
+          src="/brand/logo.svg"
+          alt="Dronacharya Logo"
+          width={40}
+          height={40}
+          className="w-full h-full"
+        />
+        <div className="absolute inset-0 rounded-xl bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
       {/* Logo Text */}
       <div className="flex flex-col">
-        <span className="font-bold text-xl tracking-tight gradient-text">
+        <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-amber-500 to-amber-600 bg-clip-text text-transparent">
           Dronacharya
         </span>
-        <span className="text-[10px] font-medium text-muted-foreground -mt-1 tracking-widest uppercase">
+        <span className="text-[10px] font-medium text-muted-foreground -mt-0.5 tracking-widest uppercase">
           AI Guru
         </span>
       </div>
