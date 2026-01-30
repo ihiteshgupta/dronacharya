@@ -33,7 +33,9 @@ const createMockDb = () => ({
   select: () => ({ from: () => ({ orderBy: () => ({ limit: async () => [] }) }) }),
 });
 
-let db: ReturnType<typeof drizzle> | ReturnType<typeof createMockDb>;
+type DrizzleDB = ReturnType<typeof drizzle<typeof schema>>;
+
+let db: DrizzleDB;
 
 if (connectionString) {
   const client = postgres(connectionString, {
@@ -42,8 +44,9 @@ if (connectionString) {
   db = drizzle(client, { schema });
 } else {
   console.warn('DATABASE_URL not configured - using mock database');
+  // Mock database for development without DATABASE_URL
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  db = createMockDb() as any;
+  db = createMockDb() as unknown as DrizzleDB;
 }
 
 export { db };
