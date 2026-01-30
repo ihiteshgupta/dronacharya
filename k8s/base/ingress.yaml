@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: learnflow-ingress
-  namespace: learnflow
+  name: dronacharya-ingress
+  namespace: dronacharya
   annotations:
     kubernetes.io/ingress.class: nginx
     cert-manager.io/cluster-issuer: letsencrypt-prod
@@ -13,27 +13,27 @@ metadata:
 spec:
   tls:
     - hosts:
-        - learnflow.ai
-        - api.learnflow.ai
-      secretName: learnflow-tls
+        - dronacharya.ai
+        - www.dronacharya.ai
+      secretName: dronacharya-tls
   rules:
-    - host: learnflow.ai
+    - host: dronacharya.ai
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: learnflow-web
+                name: dronacharya-web
                 port:
                   number: 80
-    - host: api.learnflow.ai
+    - host: www.dronacharya.ai
       http:
         paths:
-          - path: /ai
+          - path: /
             pathType: Prefix
             backend:
               service:
-                name: learnflow-ai
+                name: dronacharya-web
                 port:
                   number: 80
