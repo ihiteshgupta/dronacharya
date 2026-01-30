@@ -75,14 +75,30 @@
   /* Base radius */
   --radius: 0.75rem;
 
-  /* ========== BRAND COLORS ========== */
-  --violet: oklch(0.65 0.25 290);
-  --violet-light: oklch(0.75 0.20 290);
-  --violet-dark: oklch(0.55 0.28 290);
+  /* ========== DRONACHARYA BRAND COLORS ========== */
+  /* Primary: Deep Indigo */
+  --indigo: oklch(0.45 0.18 280);
+  --indigo-light: oklch(0.55 0.15 280);
+  --indigo-dark: oklch(0.25 0.12 280);
 
-  --cyan: oklch(0.75 0.15 195);
-  --cyan-light: oklch(0.85 0.10 195);
-  --cyan-dark: oklch(0.65 0.18 195);
+  /* Secondary: Saffron Gold */
+  --gold: oklch(0.78 0.17 70);
+  --gold-light: oklch(0.85 0.14 70);
+  --gold-dark: oklch(0.68 0.19 70);
+
+  /* Accent: Teal */
+  --teal: oklch(0.68 0.12 180);
+  --teal-light: oklch(0.78 0.10 180);
+  --teal-dark: oklch(0.58 0.14 180);
+
+  /* Legacy aliases for compatibility */
+  --violet: var(--indigo);
+  --violet-light: var(--indigo-light);
+  --violet-dark: var(--indigo-dark);
+
+  --cyan: var(--teal);
+  --cyan-light: var(--teal-light);
+  --cyan-dark: var(--teal-dark);
 
   /* ========== SEMANTIC COLORS ========== */
   --emerald: oklch(0.70 0.18 155);
@@ -137,11 +153,12 @@
   --sidebar-border: oklch(0.92 0.008 290);
   --sidebar-ring: var(--violet);
 
-  /* ========== GRADIENTS ========== */
-  --gradient-brand: linear-gradient(135deg, var(--violet) 0%, var(--cyan) 100%);
-  --gradient-xp: linear-gradient(135deg, var(--amber) 0%, var(--rose) 100%);
-  --gradient-success: linear-gradient(135deg, var(--emerald) 0%, var(--cyan) 100%);
-  --gradient-level: linear-gradient(135deg, var(--violet) 0%, var(--violet-light) 50%, var(--cyan) 100%);
+  /* ========== DRONACHARYA GRADIENTS ========== */
+  --gradient-brand: linear-gradient(135deg, var(--indigo) 0%, var(--indigo-light) 50%, var(--teal) 100%);
+  --gradient-gold: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+  --gradient-xp: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+  --gradient-success: linear-gradient(135deg, var(--teal) 0%, var(--teal-light) 100%);
+  --gradient-level: linear-gradient(135deg, var(--indigo-dark) 0%, var(--indigo) 50%, var(--gold) 100%);
 
   /* ========== ANIMATIONS ========== */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -155,14 +172,30 @@
 }
 
 .dark {
-  /* ========== DARK MODE BRAND ========== */
-  --violet: oklch(0.72 0.22 290);
-  --violet-light: oklch(0.80 0.18 290);
-  --violet-dark: oklch(0.60 0.25 290);
+  /* ========== DARK MODE DRONACHARYA BRAND ========== */
+  /* Primary: Deep Indigo (brighter in dark mode) */
+  --indigo: oklch(0.55 0.20 280);
+  --indigo-light: oklch(0.65 0.18 280);
+  --indigo-dark: oklch(0.35 0.15 280);
 
-  --cyan: oklch(0.78 0.12 195);
-  --cyan-light: oklch(0.85 0.08 195);
-  --cyan-dark: oklch(0.68 0.15 195);
+  /* Secondary: Saffron Gold */
+  --gold: oklch(0.82 0.16 70);
+  --gold-light: oklch(0.88 0.12 70);
+  --gold-dark: oklch(0.72 0.18 70);
+
+  /* Accent: Teal */
+  --teal: oklch(0.72 0.11 180);
+  --teal-light: oklch(0.80 0.09 180);
+  --teal-dark: oklch(0.62 0.13 180);
+
+  /* Legacy aliases */
+  --violet: var(--indigo);
+  --violet-light: var(--indigo-light);
+  --violet-dark: var(--indigo-dark);
+
+  --cyan: var(--teal);
+  --cyan-light: var(--teal-light);
+  --cyan-dark: var(--teal-dark);
 
   /* ========== DARK MODE SEMANTIC ========== */
   --emerald: oklch(0.75 0.15 155);
@@ -209,11 +242,12 @@
   --sidebar-border: oklch(0.25 0.02 290);
   --sidebar-ring: var(--violet);
 
-  /* ========== DARK GRADIENTS ========== */
-  --gradient-brand: linear-gradient(135deg, var(--violet) 0%, var(--cyan) 100%);
-  --gradient-xp: linear-gradient(135deg, var(--amber) 0%, var(--rose) 100%);
-  --gradient-success: linear-gradient(135deg, var(--emerald) 0%, var(--cyan) 100%);
-  --gradient-level: linear-gradient(135deg, var(--violet-dark) 0%, var(--violet) 50%, var(--cyan) 100%);
+  /* ========== DARK MODE DRONACHARYA GRADIENTS ========== */
+  --gradient-brand: linear-gradient(135deg, var(--indigo) 0%, var(--indigo-light) 50%, var(--teal) 100%);
+  --gradient-gold: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+  --gradient-xp: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+  --gradient-success: linear-gradient(135deg, var(--teal) 0%, var(--teal-light) 100%);
+  --gradient-level: linear-gradient(135deg, var(--indigo-dark) 0%, var(--indigo) 50%, var(--gold) 100%);
 }
 
 /* ============================================
@@ -366,6 +400,10 @@
   background: var(--gradient-brand);
 }
 
+.gradient-gold {
+  background: var(--gradient-gold);
+}
+
 .gradient-xp {
   background: var(--gradient-xp);
 }
@@ -380,6 +418,13 @@
 
 .gradient-text {
   background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-gold {
+  background: var(--gradient-gold);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
