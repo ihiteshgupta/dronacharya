@@ -1,12 +1,19 @@
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
-import { embeddings } from '../models';
+import { getEmbeddings } from '../models';
 import { ragConfig } from '../config';
 
-const qdrant = new QdrantClient({
-  url: ragConfig.qdrantUrl,
-  apiKey: ragConfig.qdrantApiKey,
-});
+// Lazy-loaded Qdrant client
+let _qdrant: QdrantClient | null = null;
+function getQdrant(): QdrantClient {
+  if (!_qdrant) {
+    _qdrant = new QdrantClient({
+      url: ragConfig.qdrantUrl,
+      apiKey: ragConfig.qdrantApiKey,
+    });
+  }
+  return _qdrant;
+}
 
 export const ragPipeline = {
   /**
@@ -14,9 +21,9 @@ export const ragPipeline = {
    */
   async initialize() {
     try {
-      await qdrant.getCollection(ragConfig.collectionName);
+      await getQdrant().getCollection(ragConfig.collectionName);
     } catch {
-      await qdrant.createCollection(ragConfig.collectionName, {
+      await getQdrant().createCollection(ragConfig.collectionName, {
         vectors: {
           size: 3072, // text-embedding-3-large dimension
           distance: 'Cosine',
@@ -45,7 +52,7 @@ export const ragPipeline = {
     });
 
     const chunks = await splitter.splitText(content);
-    const vectors = await embeddings.embedDocuments(chunks);
+    const vectors = await getEmbeddings().embedDocuments(chunks);
 
     const points = chunks.map((chunk: string, i: number) => ({
       id: `${contentId}-${i}`,
@@ -58,7 +65,7 @@ export const ragPipeline = {
       },
     }));
 
-    await qdrant.upsert(ragConfig.collectionName, {
+    await getQdrant().upsert(ragConfig.collectionName, {
       wait: true,
       points,
     });
@@ -78,7 +85,7 @@ export const ragPipeline = {
     },
     limit: number = ragConfig.topK
   ): Promise<string> {
-    const queryVector = await embeddings.embedQuery(query);
+    const queryVector = await getEmbeddings().embedQuery(query);
 
     const filter: Record<string, unknown> = {};
     if (filters?.courseId) {
@@ -93,7 +100,7 @@ export const ragPipeline = {
       (filter.must as unknown[]).push({ key: 'lessonId', match: { value: filters.lessonId } });
     }
 
-    const results = await qdrant.search(ragConfig.collectionName, {
+    const results = await getQdrant().search(ragConfig.collectionName, {
       vector: queryVector,
       filter: Object.keys(filter).length > 0 ? filter : undefined,
       limit,
@@ -110,7 +117,7 @@ export const ragPipeline = {
    * Delete content from the index
    */
   async deleteContent(contentId: string) {
-    await qdrant.delete(ragConfig.collectionName, {
+    await getQdrant().delete(ragConfig.collectionName, {
       filter: {
         must: [{ key: 'contentId', match: { value: contentId } }],
       },
