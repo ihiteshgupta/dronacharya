@@ -2,7 +2,7 @@
 
 import { trpc } from '@/lib/trpc/client';
 import { MainLayout } from '@/components/layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,7 +10,6 @@ import {
   Trophy,
   Star,
   Zap,
-  Target,
   Flame,
   BookOpen,
   Award,
@@ -20,7 +19,16 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const TEST_USER_ID = '11111111-1111-1111-1111-111111111111';
+interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  xpReward: number;
+  rarity?: string;
+  earned: boolean;
+  earnedAt?: string;
+}
 
 const achievementCategories = [
   { id: 'all', label: 'All', icon: Trophy },
@@ -38,15 +46,10 @@ const rarityColors: Record<string, string> = {
 };
 
 export default function AchievementsPage() {
-  const { data: achievements, isLoading } = trpc.gamification.getAchievements.useQuery(undefined, {
-    context: { headers: { 'x-user-id': TEST_USER_ID } },
-  });
+  const { data: achievements, isLoading } = trpc.gamification.getAchievements.useQuery();
+  const { data: profile } = trpc.gamification.getProfile.useQuery();
 
-  const { data: profile } = trpc.gamification.getProfile.useQuery(undefined, {
-    context: { headers: { 'x-user-id': TEST_USER_ID } },
-  });
-
-  const earnedCount = achievements?.filter((a: any) => a.earned).length || 0;
+  const earnedCount = achievements?.filter((a: Achievement) => a.earned).length || 0;
   const totalCount = achievements?.length || 0;
   const progressPercentage = totalCount > 0 ? (earnedCount / totalCount) * 100 : 0;
 
@@ -162,7 +165,7 @@ export default function AchievementsPage() {
                   </Card>
                 ))
               ) : (
-                achievements?.map((achievement: any) => (
+                achievements?.map((achievement: Achievement) => (
                   <Card
                     key={achievement.id}
                     className={cn(

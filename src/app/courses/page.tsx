@@ -15,16 +15,29 @@ import {
   Search,
   Clock,
   Users,
-  Star,
   Play,
-  Lock,
-  CheckCircle,
   Filter,
   Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const TEST_USER_ID = '11111111-1111-1111-1111-111111111111';
+interface Domain {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+}
+
+interface Track {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  difficulty: string;
+  estimatedHours?: number;
+  totalCourses: number;
+  enrollment?: boolean;
+}
 
 const domainIcons: Record<string, React.ReactNode> = {
   python: <Code className="h-5 w-5" />,
@@ -44,8 +57,7 @@ export default function CoursesPage() {
 
   const { data: domains, isLoading: domainsLoading } = trpc.course.getDomains.useQuery();
   const { data: tracks, isLoading: tracksLoading } = trpc.course.getTracks.useQuery(
-    selectedDomain ? { domainId: selectedDomain } : undefined,
-    { context: { headers: { 'x-user-id': TEST_USER_ID } } }
+    selectedDomain ? { domainId: selectedDomain } : undefined
   );
 
   return (
@@ -81,7 +93,7 @@ export default function CoursesPage() {
             <TabsTrigger value="all" onClick={() => setSelectedDomain(null)}>
               All Domains
             </TabsTrigger>
-            {domains?.map((domain: any) => (
+            {domains?.map((domain: Domain) => (
               <TabsTrigger
                 key={domain.id}
                 value={domain.slug}
@@ -109,7 +121,7 @@ export default function CoursesPage() {
                     </Card>
                   ))
                 ) : (
-                  domains?.map((domain: any) => (
+                  domains?.map((domain: Domain) => (
                     <Card
                       key={domain.id}
                       className="card-hover cursor-pointer group border-0 shadow-md"
@@ -161,7 +173,7 @@ export default function CoursesPage() {
                     </Card>
                   ))
                 ) : (
-                  tracks?.map((track: any) => (
+                  tracks?.map((track: Track) => (
                     <Card key={track.id} className="card-hover border-0 shadow-md overflow-hidden">
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between mb-3">
@@ -231,10 +243,10 @@ export default function CoursesPage() {
           </TabsContent>
 
           {/* Individual domain tabs - show same content but filtered */}
-          {domains?.map((domain: any) => (
+          {domains?.map((domain: Domain) => (
             <TabsContent key={domain.id} value={domain.slug}>
               <div className="grid gap-4 md:grid-cols-2">
-                {tracks?.map((track: any) => (
+                {tracks?.map((track: Track) => (
                   <Card key={track.id} className="card-hover border-0 shadow-md">
                     <CardContent className="p-6">
                       <h3 className="font-semibold text-lg">{track.name}</h3>

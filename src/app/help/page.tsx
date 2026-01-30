@@ -229,7 +229,7 @@ export default function HelpPage() {
             <Card className="border-0 shadow-md">
               <CardContent className="p-6 text-center">
                 <p className="text-muted-foreground">
-                  No results found for "{searchQuery}". Try a different search term.
+                  No results found for &quot;{searchQuery}&quot;. Try a different search term.
                 </p>
               </CardContent>
             </Card>

@@ -1,7 +1,9 @@
 'use client';
 
 import { trpc } from '@/lib/trpc/client';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 import { MainLayout } from '@/components/layout';
+import { OnboardingWizard } from '@/components/onboarding';
 import { XPDisplay, StreakDisplay, LevelProgress } from '@/components/gamification';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,17 +22,24 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Hardcoded user ID for demo - in real app this comes from auth
-const TEST_USER_ID = '11111111-1111-1111-1111-111111111111';
+interface Achievement {
+  id: string;
+  name: string;
+  earned: boolean;
+}
+
+interface Domain {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+}
 
 export default function Dashboard() {
+  const { isComplete: onboardingComplete } = useOnboardingStore();
   const { data: domains, isLoading: domainsLoading } = trpc.course.getDomains.useQuery();
-  const { data: profile, isLoading: profileLoading } = trpc.gamification.getProfile.useQuery(undefined, {
-    context: { headers: { 'x-user-id': TEST_USER_ID } },
-  });
-  const { data: achievements } = trpc.gamification.getAchievements.useQuery(undefined, {
-    context: { headers: { 'x-user-id': TEST_USER_ID } },
-  });
+  const { data: profile } = trpc.gamification.getProfile.useQuery();
+  const { data: achievements } = trpc.gamification.getAchievements.useQuery();
 
   const domainIcons: Record<string, React.ReactNode> = {
     python: <Code className="h-6 w-6" />,
@@ -46,6 +55,9 @@ export default function Dashboard() {
 
   return (
     <MainLayout>
+      {/* Onboarding wizard for new users */}
+      <OnboardingWizard open={!onboardingComplete} />
+
       <div className="space-y-8">
         {/* Welcome Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -135,7 +147,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
-                {achievements?.filter((a: any) => a.earned).length || 0}
+                {achievements?.filter((a: Achievement) => a.earned).length || 0}
                 <span className="text-lg font-normal text-muted-foreground">
                   {' / '}{achievements?.length || 0}
                 </span>
@@ -194,7 +206,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {domains?.map((domain: any) => (
+              {domains?.map((domain: Domain) => (
                 <Card
                   key={domain.id}
                   className="card-hover cursor-pointer group border-0 shadow-md overflow-hidden"
@@ -248,7 +260,7 @@ export default function Dashboard() {
               </Button>
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {achievements.slice(0, 4).map((achievement: any) => (
+              {achievements.slice(0, 4).map((achievement: Achievement) => (
                 <Card
                   key={achievement.id}
                   className={cn(

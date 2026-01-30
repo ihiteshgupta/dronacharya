@@ -42,6 +42,7 @@ if (connectionString) {
   db = drizzle(client, { schema });
 } else {
   console.warn('DATABASE_URL not configured - using mock database');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   db = createMockDb() as any;
 }
 

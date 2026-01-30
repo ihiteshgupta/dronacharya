@@ -5,7 +5,6 @@ import { MainLayout } from '@/components/layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  BarChart3,
   TrendingUp,
   Clock,
   Target,
@@ -14,8 +13,6 @@ import {
   BookOpen,
   Brain,
 } from 'lucide-react';
-
-const TEST_USER_ID = '11111111-1111-1111-1111-111111111111';
 
 // Mock data for analytics
 const weeklyActivity = [
@@ -29,9 +26,7 @@ const weeklyActivity = [
 ];
 
 export default function AnalyticsPage() {
-  const { data: profile } = trpc.gamification.getProfile.useQuery(undefined, {
-    context: { headers: { 'x-user-id': TEST_USER_ID } },
-  });
+  const { data: profile } = trpc.gamification.getProfile.useQuery();
 
   const totalWeeklyMinutes = weeklyActivity.reduce((sum, d) => sum + d.minutes, 0);
   const totalWeeklyXP = weeklyActivity.reduce((sum, d) => sum + d.xp, 0);
