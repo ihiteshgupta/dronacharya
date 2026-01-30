@@ -1,9 +1,10 @@
-import { db } from '@/lib/db';
+import { eq } from 'drizzle-orm';
+import { db, courses } from '@/lib/db';
 import { ragPipeline } from './pipeline';
 
 export async function indexCourse(courseId: string) {
   const course = await db.query.courses.findFirst({
-    where: { id: courseId },
+    where: eq(courses.id, courseId),
     with: {
       modules: {
         with: {
