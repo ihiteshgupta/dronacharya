@@ -280,14 +280,11 @@ export const certificationRouter = router({
       }
 
       // Generate exam questions using Quiz Generator agent
-      const examQuiz = await quizGeneratorAgent.generateExam({
-        topic: course.name,
-        count: 20,
-        passingScore: 80,
-        timeLimit: 45,
-        certificationTier: 'silver',
-        courseName: course.name,
-      });
+      const examQuiz = await quizGeneratorAgent.generateQuiz(
+        course.name,
+        `Certification exam for ${course.name}`,
+        { questionCount: 20 }
+      );
 
       if (!examQuiz) {
         throw new TRPCError({
@@ -313,7 +310,7 @@ export const certificationRouter = router({
       const questionRecords = await ctx.db
         .insert(assessmentQuestions)
         .values(
-          examQuiz.questions.map((q, index) => ({
+          examQuiz.questions.map((q: { type: string; question: string; options?: string[]; correctAnswer: string }, index: number) => ({
             assessmentId: assessment.id,
             questionType: q.type,
             question: q.question,

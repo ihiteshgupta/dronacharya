@@ -58,7 +58,7 @@ export default function ProfilePage() {
             <div className="flex flex-col md:flex-row md:items-end gap-4 -mt-16">
               {/* Avatar */}
               <Avatar className="h-32 w-32 border-4 border-background shadow-xl">
-                <AvatarImage src={session?.user?.image ?? undefined} alt={session?.user?.name ?? 'User'} />
+                <AvatarImage src={(session?.user as { image?: string })?.image ?? undefined} alt={session?.user?.name ?? 'User'} />
                 <AvatarFallback className="gradient-brand text-white text-3xl font-bold">
                   {getInitials(session?.user?.name ?? 'U')}
                 </AvatarFallback>

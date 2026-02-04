@@ -31,7 +31,7 @@ vi.mock('@/lib/db', () => ({
 // Mock quiz generator agent
 vi.mock('@/lib/ai/agents/quiz-generator', () => ({
   quizGeneratorAgent: {
-    generateExam: vi.fn(),
+    generateQuiz: vi.fn(),
   },
 }));
 
@@ -226,27 +226,23 @@ describe('certificationRouter', () => {
         }),
       };
 
-      vi.mocked(quizGeneratorAgent.generateExam).mockResolvedValue(mockQuiz as never);
+      vi.mocked(quizGeneratorAgent.generateQuiz).mockResolvedValue(mockQuiz as never);
 
       // Verify quiz generator was called
-      expect(quizGeneratorAgent.generateExam).not.toHaveBeenCalled();
+      expect(quizGeneratorAgent.generateQuiz).not.toHaveBeenCalled();
 
       // Simulate calling it
-      await quizGeneratorAgent.generateExam({
-        topic: 'Test Course',
-        count: 20,
-        passingScore: 80,
-        timeLimit: 45,
-        certificationTier: 'silver',
-      });
+      await quizGeneratorAgent.generateQuiz(
+        'Test Course',
+        'Certification exam for Test Course',
+        { questionCount: 20 }
+      );
 
-      expect(quizGeneratorAgent.generateExam).toHaveBeenCalledWith({
-        topic: 'Test Course',
-        count: 20,
-        passingScore: 80,
-        timeLimit: 45,
-        certificationTier: 'silver',
-      });
+      expect(quizGeneratorAgent.generateQuiz).toHaveBeenCalledWith(
+        'Test Course',
+        'Certification exam for Test Course',
+        { questionCount: 20 }
+      );
     });
 
     it('should throw error when bronze is not earned', async () => {

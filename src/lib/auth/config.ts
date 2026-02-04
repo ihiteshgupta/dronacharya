@@ -77,7 +77,7 @@ export const authConfig: NextAuthConfig = {
       if (user) {
         token.id = user.id;
         // Cast to access custom role property from our credentials provider
-        token.role = (user as { role?: string }).role;
+        token.role = (user as { role?: string }).role ?? 'learner';
       }
       return token;
     },

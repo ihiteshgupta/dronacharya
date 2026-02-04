@@ -1,9 +1,7 @@
-import puppeteer from 'puppeteer';
-import QRCode from 'qrcode';
 import { getCertificateTemplate, CertificateData } from './templates';
 
 // App base URL for verification links
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://learnflow.ai';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://dronacharya.ai';
 
 export interface CertificateInput {
   recipientName: string;
@@ -21,7 +19,8 @@ export interface CertificateInput {
  */
 async function generateQRCode(verifyUrl: string): Promise<string> {
   try {
-    return await QRCode.toDataURL(verifyUrl, {
+    const QRCode = await import('qrcode');
+    return await QRCode.default.toDataURL(verifyUrl, {
       width: 200,
       margin: 1,
       color: {
@@ -30,7 +29,7 @@ async function generateQRCode(verifyUrl: string): Promise<string> {
       },
     });
   } catch {
-    // Return placeholder if QR generation fails
+    // Return placeholder if QR generation fails or module not installed
     return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
   }
 }
@@ -50,8 +49,9 @@ export async function generateCertificatePDF(input: CertificateInput): Promise<B
 
   const html = getCertificateTemplate(certificateData);
 
-  // Launch puppeteer
-  const browser = await puppeteer.launch({
+  // Dynamic import — puppeteer is only needed for certificate generation
+  const puppeteer = await import('puppeteer');
+  const browser = await puppeteer.default.launch({
     headless: true,
     args: [
       '--no-sandbox',

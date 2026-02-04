@@ -3,10 +3,10 @@ import { HumanMessage, SystemMessage, AIMessage } from '@langchain/core/messages
 import {
   quizGeneratorAgent,
   type Quiz,
-  type Question,
-  type QuizGenerationOptions,
-  type ExamGenerationOptions,
-  type QuestionType,
+  type QuizQuestion,
+  type AdaptiveQuestionResult,
+  type QuizAnalysis,
+  type PracticeSet,
 } from '../quiz-generator';
 import type { AgentState } from '../../types';
 
@@ -15,17 +15,13 @@ vi.mock('../../models', () => ({
   getModelForAgent: vi.fn(),
 }));
 
-// Mock the prompts module
-vi.mock('../../prompts/quiz-generator-prompts', () => ({
-  QUIZ_GENERATOR_SYSTEM_PROMPT:
-    'You are a quiz generator for level {level}. Course: {courseName}, Module: {moduleName}. Objectives: {objectives}. Context: {ragContext}',
-  QUIZ_GENERATION_PROMPT:
-    'Generate {count} questions at difficulty {difficulty} on {topic}. Types: {questionTypes}. Focus: {focusAreas}. Time per question: {timePerQuestion}s.',
-  EXAM_GENERATION_PROMPT:
-    'Generate {count} questions for certification exam. Passing score: {passingScore}%. Time limit: {timeLimit}min. Tier: {certificationTier}.',
-  SINGLE_QUESTION_PROMPT:
-    'Generate a {type} question on {topic} at difficulty {difficulty}.{ragContext}',
-}));
+// Mock the prompts module - use real prompts via importOriginal
+vi.mock('../../prompts/quiz-generator-prompts', async (importOriginal) => {
+  const actual = await importOriginal() as Record<string, unknown>;
+  return {
+    ...actual,
+  };
+});
 
 import { getModelForAgent } from '../../models';
 
@@ -41,33 +37,33 @@ function createQuizJson(overrides: Partial<Quiz> = {}): Quiz {
   return {
     title: 'JavaScript Fundamentals Quiz',
     description: 'Test your knowledge of JavaScript basics',
+    estimatedMinutes: 10,
     questions: [
       {
         id: 'q1',
         type: 'multiple_choice',
+        difficulty: 5,
         question: 'What is the correct way to declare a variable in JavaScript?',
         options: ['var x = 5', 'int x = 5', 'x := 5', 'declare x = 5'],
         correctAnswer: 'var x = 5',
         explanation: 'var is the traditional way to declare variables in JavaScript.',
         hint: 'Think about JavaScript keywords',
-        difficulty: 5,
         points: 10,
-        tags: ['variables', 'basics'],
+        conceptsTested: ['variables', 'basics'],
       },
     ],
-    totalPoints: 10,
     passingScore: 70,
-    timeLimit: 15,
-    tags: ['javascript', 'fundamentals'],
+    totalPoints: 10,
     ...overrides,
   };
 }
 
-// Helper to create a valid question JSON response
-function createQuestionJson(overrides: Partial<Question> = {}): Question {
+// Helper to create a quiz question
+function createQuizQuestion(overrides: Partial<QuizQuestion> = {}): QuizQuestion {
   return {
     id: 'q1',
     type: 'multiple_choice',
+    difficulty: 5,
     question: 'What is a closure in JavaScript?',
     options: [
       'A function with access to its outer scope',
@@ -78,8 +74,8 @@ function createQuestionJson(overrides: Partial<Question> = {}): Question {
     correctAnswer: 'A function with access to its outer scope',
     explanation: 'A closure is a function that has access to variables from its outer scope.',
     hint: 'Think about scope and functions',
-    difficulty: 6,
-    points: 15,
+    points: 10,
+    conceptsTested: ['closures', 'scope'],
     ...overrides,
   };
 }
@@ -135,37 +131,11 @@ describe('quizGeneratorAgent', () => {
 
       const result = await quizGeneratorAgent.invoke(state);
 
-      expect(getModelForAgent).toHaveBeenCalledWith('quizGenerator');
+      expect(getModelForAgent).toHaveBeenCalledWith('assessor');
       expect(mockModel.invoke).toHaveBeenCalledTimes(1);
       expect(result.messages).toHaveLength(1);
       expect(result.messages[0]).toBeInstanceOf(AIMessage);
       expect(result.metadata.agentType).toBe('quizGenerator');
-      expect(result.metadata.hasStructuredOutput).toBe(false);
-    });
-
-    it('should extract quiz JSON from response when present', async () => {
-      const state = createMockState();
-      const quiz = createQuizJson();
-      mockModel.invoke.mockResolvedValue({
-        content: `Here's your quiz:\n${JSON.stringify(quiz)}`,
-      });
-
-      const result = await quizGeneratorAgent.invoke(state);
-
-      expect(result.metadata.hasStructuredOutput).toBe(true);
-      expect(result.metadata.generatedQuiz).toBeDefined();
-    });
-
-    it('should handle responses without JSON', async () => {
-      const state = createMockState();
-      mockModel.invoke.mockResolvedValue({
-        content: 'What specific topics should I include in the quiz?',
-      });
-
-      const result = await quizGeneratorAgent.invoke(state);
-
-      expect(result.metadata.hasStructuredOutput).toBe(false);
-      expect(result.metadata.generatedQuiz).toBeUndefined();
     });
 
     it('should use user profile level in system prompt', async () => {
@@ -187,7 +157,6 @@ describe('quizGeneratorAgent', () => {
 
       const invokeCall = mockModel.invoke.mock.calls[0][0];
       expect(invokeCall[0]).toBeInstanceOf(SystemMessage);
-      // Verify level is included in system prompt
       expect(invokeCall[0].content).toContain('50');
     });
 
@@ -209,6 +178,14 @@ describe('quizGeneratorAgent', () => {
 
       expect(mockModel.invoke).toHaveBeenCalled();
     });
+
+    it('should handle model invocation errors in invoke', async () => {
+      mockModel.invoke.mockRejectedValue(new Error('API Error'));
+
+      const state = createMockState();
+
+      await expect(quizGeneratorAgent.invoke(state)).rejects.toThrow('API Error');
+    });
   });
 
   describe('generateQuiz', () => {
@@ -218,22 +195,16 @@ describe('quizGeneratorAgent', () => {
         content: JSON.stringify(quiz),
       });
 
-      const options: QuizGenerationOptions = {
-        count: 5,
-        difficulty: 5,
-        topic: 'JavaScript',
-        questionTypes: ['multiple_choice', 'code_output'],
-        focusAreas: ['variables', 'functions'],
-        timePerQuestion: 60,
-      };
+      const result = await quizGeneratorAgent.generateQuiz(
+        'JavaScript',
+        'JavaScript is a programming language used for web development.',
+        { studentLevel: 25, questionCount: 5, focusAreas: ['variables', 'functions'] }
+      );
 
-      const result = await quizGeneratorAgent.generateQuiz(options);
-
-      expect(getModelForAgent).toHaveBeenCalledWith('quizGenerator');
+      expect(getModelForAgent).toHaveBeenCalledWith('assessor');
       expect(mockModel.invoke).toHaveBeenCalledTimes(1);
-      expect(result).not.toBeNull();
-      expect(result?.title).toBe(quiz.title);
-      expect(result?.questions).toHaveLength(1);
+      expect(result.title).toBe(quiz.title);
+      expect(result.questions).toHaveLength(1);
     });
 
     it('should use default values when optional parameters are not provided', async () => {
@@ -242,71 +213,27 @@ describe('quizGeneratorAgent', () => {
         content: JSON.stringify(quiz),
       });
 
-      const options: QuizGenerationOptions = {
-        count: 3,
-        difficulty: 3,
-        topic: 'Python',
-      };
+      const result = await quizGeneratorAgent.generateQuiz(
+        'Python',
+        'Python is a versatile programming language.'
+      );
 
-      const result = await quizGeneratorAgent.generateQuiz(options);
-
-      expect(result).not.toBeNull();
+      expect(result).toBeDefined();
       expect(mockModel.invoke).toHaveBeenCalled();
     });
 
-    it('should handle various difficulty levels', async () => {
-      const difficulties = [1, 5, 10];
-
-      for (const difficulty of difficulties) {
-        const quiz = createQuizJson();
-        mockModel.invoke.mockResolvedValue({
-          content: JSON.stringify(quiz),
-        });
-
-        const options: QuizGenerationOptions = {
-          count: 5,
-          difficulty,
-          topic: 'TypeScript',
-        };
-
-        const result = await quizGeneratorAgent.generateQuiz(options);
-        expect(result).not.toBeNull();
-      }
-
-      expect(mockModel.invoke).toHaveBeenCalledTimes(3);
-    });
-
-    it('should return null when JSON extraction fails', async () => {
+    it('should return fallback when JSON extraction fails', async () => {
       mockModel.invoke.mockResolvedValue({
         content: 'No JSON here, just plain text response.',
       });
 
-      const options: QuizGenerationOptions = {
-        count: 5,
-        difficulty: 5,
-        topic: 'JavaScript',
-      };
+      const result = await quizGeneratorAgent.generateQuiz(
+        'JavaScript',
+        'Content about JavaScript.'
+      );
 
-      const result = await quizGeneratorAgent.generateQuiz(options);
-
-      expect(result).toBeNull();
-    });
-
-    it('should return null when quiz validation fails', async () => {
-      // Invalid quiz - missing required fields
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify({ title: 'Invalid Quiz' }),
-      });
-
-      const options: QuizGenerationOptions = {
-        count: 5,
-        difficulty: 5,
-        topic: 'JavaScript',
-      };
-
-      const result = await quizGeneratorAgent.generateQuiz(options);
-
-      expect(result).toBeNull();
+      expect(result.title).toContain('JavaScript');
+      expect(result.questions).toEqual([]);
     });
 
     it('should include focus areas in prompt', async () => {
@@ -315,394 +242,23 @@ describe('quizGeneratorAgent', () => {
         content: JSON.stringify(quiz),
       });
 
-      const options: QuizGenerationOptions = {
-        count: 5,
-        difficulty: 5,
-        topic: 'JavaScript',
-        focusAreas: ['closures', 'prototypes', 'async/await'],
-      };
-
-      await quizGeneratorAgent.generateQuiz(options);
+      await quizGeneratorAgent.generateQuiz(
+        'JavaScript',
+        'Content about JavaScript closures and prototypes.',
+        { focusAreas: ['closures', 'prototypes', 'async/await'] }
+      );
 
       const invokeCall = mockModel.invoke.mock.calls[0][0];
+      // Second message is the HumanMessage with the prompt
       expect(invokeCall[1]).toBeInstanceOf(HumanMessage);
     });
 
-    it('should include RAG context when provided', async () => {
-      const quiz = createQuizJson();
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(quiz),
-      });
-
-      const options: QuizGenerationOptions = {
-        count: 5,
-        difficulty: 5,
-        topic: 'JavaScript',
-        ragContext: 'Closures are functions that remember their lexical scope...',
-      };
-
-      await quizGeneratorAgent.generateQuiz(options);
-
-      expect(mockModel.invoke).toHaveBeenCalled();
-    });
-  });
-
-  describe('generateExam', () => {
-    it('should generate certification exam', async () => {
-      const examQuiz = createQuizJson({
-        title: 'JavaScript Certification Exam',
-        certificationTier: 'silver',
-        passingScore: 80,
-        timeLimit: 60,
-      });
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(examQuiz),
-      });
-
-      const options: ExamGenerationOptions = {
-        count: 20,
-        passingScore: 80,
-        timeLimit: 60,
-        certificationTier: 'silver',
-        topic: 'JavaScript',
-      };
-
-      const result = await quizGeneratorAgent.generateExam(options);
-
-      expect(result).not.toBeNull();
-      expect(result?.certificationTier).toBe('silver');
-    });
-
-    it('should handle different certification tiers', async () => {
-      const tiers: Array<'bronze' | 'silver' | 'gold' | 'platinum'> = [
-        'bronze',
-        'silver',
-        'gold',
-        'platinum',
-      ];
-
-      for (const tier of tiers) {
-        const examQuiz = createQuizJson({
-          certificationTier: tier,
-        });
-        mockModel.invoke.mockResolvedValue({
-          content: JSON.stringify(examQuiz),
-        });
-
-        const options: ExamGenerationOptions = {
-          count: 20,
-          passingScore: 70,
-          timeLimit: 45,
-          certificationTier: tier,
-          topic: 'JavaScript',
-        };
-
-        const result = await quizGeneratorAgent.generateExam(options);
-        expect(result).not.toBeNull();
-        expect(result?.certificationTier).toBe(tier);
-      }
-
-      expect(mockModel.invoke).toHaveBeenCalledTimes(4);
-    });
-
-    it('should add certification tier to exam data if not present', async () => {
-      // Quiz without certificationTier in response
-      const examQuiz = createQuizJson();
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(examQuiz),
-      });
-
-      const options: ExamGenerationOptions = {
-        count: 20,
-        passingScore: 80,
-        timeLimit: 60,
-        certificationTier: 'gold',
-        topic: 'JavaScript',
-      };
-
-      const result = await quizGeneratorAgent.generateExam(options);
-
-      expect(result).not.toBeNull();
-      expect(result?.certificationTier).toBe('gold');
-    });
-
-    it('should return null when exam JSON extraction fails', async () => {
-      mockModel.invoke.mockResolvedValue({
-        content: 'Unable to generate exam at this time.',
-      });
-
-      const options: ExamGenerationOptions = {
-        count: 20,
-        passingScore: 80,
-        timeLimit: 60,
-        certificationTier: 'silver',
-        topic: 'JavaScript',
-      };
-
-      const result = await quizGeneratorAgent.generateExam(options);
-
-      expect(result).toBeNull();
-    });
-
-    it('should use tier-appropriate difficulty levels', async () => {
-      const examQuiz = createQuizJson({
-        certificationTier: 'platinum',
-      });
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(examQuiz),
-      });
-
-      const options: ExamGenerationOptions = {
-        count: 25,
-        passingScore: 85,
-        timeLimit: 90,
-        certificationTier: 'platinum',
-        topic: 'Advanced JavaScript',
-      };
-
-      await quizGeneratorAgent.generateExam(options);
-
-      // Platinum should use difficulty level 90
-      const invokeCall = mockModel.invoke.mock.calls[0][0];
-      expect(invokeCall[0]).toBeInstanceOf(SystemMessage);
-      expect(invokeCall[0].content).toContain('90');
-    });
-
-    it('should include optional parameters when provided', async () => {
-      const examQuiz = createQuizJson({
-        certificationTier: 'gold',
-      });
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(examQuiz),
-      });
-
-      const options: ExamGenerationOptions = {
-        count: 30,
-        passingScore: 75,
-        timeLimit: 120,
-        certificationTier: 'gold',
-        topic: 'Full Stack Development',
-        courseName: 'Advanced Web Development',
-        moduleName: 'Final Certification',
-        objectives: ['Build REST APIs', 'Deploy applications'],
-        ragContext: 'Full stack development involves...',
-      };
-
-      await quizGeneratorAgent.generateExam(options);
-
-      expect(mockModel.invoke).toHaveBeenCalled();
-    });
-  });
-
-  describe('generateQuestion', () => {
-    it('should generate single question', async () => {
-      const question = createQuestionJson();
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(question),
-      });
-
-      const result = await quizGeneratorAgent.generateQuestion(
-        'JavaScript',
-        'multiple_choice',
-        5
-      );
-
-      expect(result).not.toBeNull();
-      expect(result?.type).toBe('multiple_choice');
-      expect(result?.question).toBeDefined();
-    });
-
-    it('should handle different question types', async () => {
-      const types: QuestionType[] = [
-        'multiple_choice',
-        'code_output',
-        'bug_finding',
-        'code_completion',
-        'conceptual',
-        'true_false',
-        'ordering',
-      ];
-
-      for (const type of types) {
-        const question = createQuestionJson({ type });
-        mockModel.invoke.mockResolvedValue({
-          content: JSON.stringify(question),
-        });
-
-        const result = await quizGeneratorAgent.generateQuestion(
-          'JavaScript',
-          type,
-          5
-        );
-
-        expect(result).not.toBeNull();
-        expect(result?.type).toBe(type);
-      }
-
-      expect(mockModel.invoke).toHaveBeenCalledTimes(7);
-    });
-
-    it('should include RAG context when provided', async () => {
-      const question = createQuestionJson();
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(question),
-      });
-
-      await quizGeneratorAgent.generateQuestion(
-        'Closures',
-        'conceptual',
-        7,
-        'A closure is a function that captures variables from its surrounding scope.'
-      );
-
-      expect(mockModel.invoke).toHaveBeenCalled();
-    });
-
-    it('should return null when JSON extraction fails', async () => {
-      mockModel.invoke.mockResolvedValue({
-        content: 'Could not generate question.',
-      });
-
-      const result = await quizGeneratorAgent.generateQuestion(
-        'JavaScript',
-        'multiple_choice',
-        5
-      );
-
-      expect(result).toBeNull();
-    });
-
-    it('should return null when question validation fails', async () => {
-      // Invalid question - missing required fields
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify({ question: 'What is JavaScript?' }),
-      });
-
-      const result = await quizGeneratorAgent.generateQuestion(
-        'JavaScript',
-        'multiple_choice',
-        5
-      );
-
-      expect(result).toBeNull();
-    });
-
-    it('should validate difficulty is within range', async () => {
-      const question = createQuestionJson({ difficulty: 8 });
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(question),
-      });
-
-      const result = await quizGeneratorAgent.generateQuestion(
-        'JavaScript',
-        'conceptual',
-        8
-      );
-
-      expect(result).not.toBeNull();
-      expect(result?.difficulty).toBe(8);
-    });
-  });
-
-  describe('generateQuestionBatch', () => {
-    it('should generate multiple questions in batch', async () => {
-      const types: QuestionType[] = ['multiple_choice', 'code_output', 'conceptual'];
-
-      types.forEach((type, index) => {
-        const question = createQuestionJson({ id: `q${index + 1}`, type });
-        mockModel.invoke.mockResolvedValueOnce({
-          content: JSON.stringify(question),
-        });
-      });
-
-      const result = await quizGeneratorAgent.generateQuestionBatch(
-        'JavaScript',
-        types,
-        5
-      );
-
-      expect(result).toHaveLength(3);
-      expect(mockModel.invoke).toHaveBeenCalledTimes(3);
-    });
-
-    it('should skip failed questions and continue', async () => {
-      const question1 = createQuestionJson({ id: 'q1', type: 'multiple_choice' });
-      const question3 = createQuestionJson({ id: 'q3', type: 'conceptual' });
-
-      mockModel.invoke
-        .mockResolvedValueOnce({ content: JSON.stringify(question1) })
-        .mockResolvedValueOnce({ content: 'Invalid response' })
-        .mockResolvedValueOnce({ content: JSON.stringify(question3) });
-
-      const types: QuestionType[] = ['multiple_choice', 'code_output', 'conceptual'];
-      const result = await quizGeneratorAgent.generateQuestionBatch(
-        'JavaScript',
-        types,
-        5
-      );
-
-      expect(result).toHaveLength(2);
-      expect(result[0].id).toBe('q1');
-      expect(result[1].id).toBe('q3');
-    });
-
-    it('should return empty array when all questions fail', async () => {
-      mockModel.invoke.mockResolvedValue({
-        content: 'Unable to generate question',
-      });
-
-      const types: QuestionType[] = ['multiple_choice', 'code_output'];
-      const result = await quizGeneratorAgent.generateQuestionBatch(
-        'JavaScript',
-        types,
-        5
-      );
-
-      expect(result).toHaveLength(0);
-    });
-
-    it('should include RAG context for each question', async () => {
-      const types: QuestionType[] = ['multiple_choice', 'conceptual'];
-
-      types.forEach((type, index) => {
-        const question = createQuestionJson({ id: `q${index + 1}`, type });
-        mockModel.invoke.mockResolvedValueOnce({
-          content: JSON.stringify(question),
-        });
-      });
-
-      await quizGeneratorAgent.generateQuestionBatch(
-        'Closures',
-        types,
-        6,
-        'Closures capture variables from outer scope.'
-      );
-
-      expect(mockModel.invoke).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  describe('error handling', () => {
-    it('should handle model invocation errors in invoke', async () => {
-      mockModel.invoke.mockRejectedValue(new Error('API Error'));
-
-      const state = createMockState();
-
-      await expect(quizGeneratorAgent.invoke(state)).rejects.toThrow('API Error');
-    });
-
-    it('should handle model invocation errors in generateQuiz', async () => {
+    it('should handle model invocation errors', async () => {
       mockModel.invoke.mockRejectedValue(new Error('Network Error'));
 
-      const options: QuizGenerationOptions = {
-        count: 5,
-        difficulty: 5,
-        topic: 'JavaScript',
-      };
-
-      await expect(quizGeneratorAgent.generateQuiz(options)).rejects.toThrow(
-        'Network Error'
-      );
+      await expect(
+        quizGeneratorAgent.generateQuiz('JavaScript', 'Content')
+      ).rejects.toThrow('Network Error');
     });
 
     it('should handle malformed JSON gracefully', async () => {
@@ -710,15 +266,282 @@ describe('quizGeneratorAgent', () => {
         content: '{ "title": "Quiz", "questions": [ } invalid json',
       });
 
-      const options: QuizGenerationOptions = {
-        count: 5,
-        difficulty: 5,
-        topic: 'JavaScript',
+      const result = await quizGeneratorAgent.generateQuiz(
+        'JavaScript',
+        'Content about JavaScript.'
+      );
+
+      // Falls back to default
+      expect(result.title).toContain('JavaScript');
+      expect(result.questions).toEqual([]);
+    });
+
+    it('should truncate content to 4000 chars', async () => {
+      const quiz = createQuizJson();
+      mockModel.invoke.mockResolvedValue({
+        content: JSON.stringify(quiz),
+      });
+
+      const longContent = 'x'.repeat(5000);
+      await quizGeneratorAgent.generateQuiz('Topic', longContent);
+
+      expect(mockModel.invoke).toHaveBeenCalled();
+    });
+  });
+
+  describe('generateAdaptiveQuestion', () => {
+    it('should generate adaptive follow-up after correct answer', async () => {
+      const adaptiveResult: AdaptiveQuestionResult = {
+        question: createQuizQuestion({ difficulty: 7 }),
+        rationale: 'Student answered correctly, increasing difficulty.',
       };
+      mockModel.invoke.mockResolvedValue({
+        content: JSON.stringify(adaptiveResult),
+      });
 
-      const result = await quizGeneratorAgent.generateQuiz(options);
+      const result = await quizGeneratorAgent.generateAdaptiveQuestion(
+        'What is a variable?',
+        'A named storage for data',
+        true,
+        25,
+        ['variables', 'data types']
+      );
 
-      expect(result).toBeNull();
+      expect(result.rationale).toBeDefined();
+      expect(result.question).toBeDefined();
+    });
+
+    it('should generate easier follow-up after incorrect answer', async () => {
+      const adaptiveResult: AdaptiveQuestionResult = {
+        question: createQuizQuestion({ difficulty: 3 }),
+        rationale: 'Student struggled, providing an easier question.',
+      };
+      mockModel.invoke.mockResolvedValue({
+        content: JSON.stringify(adaptiveResult),
+      });
+
+      const result = await quizGeneratorAgent.generateAdaptiveQuestion(
+        'Explain closures in JavaScript',
+        'A closure is when you close a function',
+        false,
+        25,
+        ['closures', 'scope']
+      );
+
+      expect(result.question.difficulty).toBe(3);
+      expect(result.rationale).toContain('easier');
+    });
+
+    it('should return fallback when JSON extraction fails', async () => {
+      mockModel.invoke.mockResolvedValue({
+        content: 'Here is a follow-up question for you...',
+      });
+
+      const result = await quizGeneratorAgent.generateAdaptiveQuestion(
+        'What is JS?',
+        'A language',
+        true,
+        10,
+        ['basics']
+      );
+
+      expect(result.question.id).toBe('adaptive-1');
+      expect(result.rationale).toBe('Unable to generate rationale');
+    });
+  });
+
+  describe('analyzeQuizResults', () => {
+    it('should analyze quiz results and provide feedback', async () => {
+      const analysis: QuizAnalysis = {
+        overallAssessment: 'Good performance with room for improvement',
+        strengthAreas: ['variables', 'functions'],
+        weakAreas: ['closures'],
+        conceptMastery: {
+          variables: { score: 90, status: 'mastered' },
+          closures: { score: 40, status: 'needs_work' },
+        },
+        recommendations: [
+          { type: 'practice', topic: 'closures', reason: 'Low score on closure questions' },
+        ],
+        nextSteps: ['Review closure documentation', 'Practice with examples'],
+        encouragement: 'Great start! Keep going!',
+      };
+      mockModel.invoke.mockResolvedValue({
+        content: JSON.stringify(analysis),
+      });
+
+      const questionsWithAnswers = [
+        {
+          question: createQuizQuestion({ conceptsTested: ['variables'] }),
+          studentAnswer: 'A function with access to its outer scope',
+          isCorrect: true,
+        },
+        {
+          question: createQuizQuestion({ id: 'q2', conceptsTested: ['closures'] }),
+          studentAnswer: 'Wrong answer',
+          isCorrect: false,
+        },
+      ];
+
+      const result = await quizGeneratorAgent.analyzeQuizResults(
+        'JavaScript',
+        questionsWithAnswers,
+        50,
+        100,
+        15
+      );
+
+      expect(result.strengthAreas).toContain('variables');
+      expect(result.weakAreas).toContain('closures');
+      expect(result.recommendations.length).toBeGreaterThan(0);
+    });
+
+    it('should return fallback when JSON extraction fails', async () => {
+      mockModel.invoke.mockResolvedValue({
+        content: 'Your results look good overall.',
+      });
+
+      const result = await quizGeneratorAgent.analyzeQuizResults(
+        'JavaScript',
+        [],
+        0,
+        100,
+        10
+      );
+
+      expect(result.overallAssessment).toBe('Unable to analyze results');
+      expect(result.encouragement).toBe('Keep learning!');
+    });
+  });
+
+  describe('generatePracticeSet', () => {
+    it('should generate practice questions for weak areas', async () => {
+      const practiceSet: PracticeSet = {
+        practiceSetTitle: 'Practice: Closures',
+        targetConcepts: ['closures', 'scope'],
+        questions: [
+          {
+            ...createQuizQuestion({ id: 'p1', difficulty: 3 }),
+            relatedConcept: 'closures',
+          },
+        ],
+        learningTips: ['Review how scope works in JavaScript'],
+      };
+      mockModel.invoke.mockResolvedValue({
+        content: JSON.stringify(practiceSet),
+      });
+
+      const result = await quizGeneratorAgent.generatePracticeSet(
+        ['closures', 'scope'],
+        25,
+        'JavaScript closures allow functions to access outer scope variables...'
+      );
+
+      expect(result.practiceSetTitle).toContain('Closures');
+      expect(result.targetConcepts).toContain('closures');
+      expect(result.questions.length).toBeGreaterThan(0);
+      expect(result.learningTips.length).toBeGreaterThan(0);
+    });
+
+    it('should return fallback when JSON extraction fails', async () => {
+      mockModel.invoke.mockResolvedValue({
+        content: 'Here are some practice questions...',
+      });
+
+      const result = await quizGeneratorAgent.generatePracticeSet(
+        ['arrays'],
+        10,
+        'Content about arrays.'
+      );
+
+      expect(result.practiceSetTitle).toContain('arrays');
+      expect(result.questions).toEqual([]);
+    });
+
+    it('should truncate content to 3000 chars', async () => {
+      const practiceSet: PracticeSet = {
+        practiceSetTitle: 'Practice: Topic',
+        targetConcepts: ['topic'],
+        questions: [],
+        learningTips: [],
+      };
+      mockModel.invoke.mockResolvedValue({
+        content: JSON.stringify(practiceSet),
+      });
+
+      const longContent = 'x'.repeat(4000);
+      await quizGeneratorAgent.generatePracticeSet(['topic'], 10, longContent);
+
+      expect(mockModel.invoke).toHaveBeenCalled();
+    });
+  });
+
+  describe('generateQuizFromRAG', () => {
+    it('should generate quiz from RAG context', async () => {
+      const quiz = createQuizJson();
+      mockModel.invoke.mockResolvedValue({
+        content: JSON.stringify(quiz),
+      });
+
+      const result = await quizGeneratorAgent.generateQuizFromRAG(
+        'JavaScript Closures',
+        'Closures are functions that capture variables from their surrounding scope...',
+        25,
+        5
+      );
+
+      expect(result.title).toBe(quiz.title);
+      expect(getModelForAgent).toHaveBeenCalledWith('assessor');
+    });
+
+    it('should use default question count', async () => {
+      const quiz = createQuizJson();
+      mockModel.invoke.mockResolvedValue({
+        content: JSON.stringify(quiz),
+      });
+
+      const result = await quizGeneratorAgent.generateQuizFromRAG(
+        'Python',
+        'Python is a general-purpose language...',
+        15
+      );
+
+      expect(result).toBeDefined();
+      expect(mockModel.invoke).toHaveBeenCalled();
+    });
+  });
+
+  describe('error handling', () => {
+    it('should handle model invocation errors in generateQuiz', async () => {
+      mockModel.invoke.mockRejectedValue(new Error('Network Error'));
+
+      await expect(
+        quizGeneratorAgent.generateQuiz('JavaScript', 'Content')
+      ).rejects.toThrow('Network Error');
+    });
+
+    it('should handle model invocation errors in generateAdaptiveQuestion', async () => {
+      mockModel.invoke.mockRejectedValue(new Error('Timeout'));
+
+      await expect(
+        quizGeneratorAgent.generateAdaptiveQuestion('Q', 'A', true, 10, ['c'])
+      ).rejects.toThrow('Timeout');
+    });
+
+    it('should handle model invocation errors in analyzeQuizResults', async () => {
+      mockModel.invoke.mockRejectedValue(new Error('Service Error'));
+
+      await expect(
+        quizGeneratorAgent.analyzeQuizResults('Topic', [], 0, 100, 10)
+      ).rejects.toThrow('Service Error');
+    });
+
+    it('should handle model invocation errors in generatePracticeSet', async () => {
+      mockModel.invoke.mockRejectedValue(new Error('Rate Limited'));
+
+      await expect(
+        quizGeneratorAgent.generatePracticeSet(['area'], 10, 'content')
+      ).rejects.toThrow('Rate Limited');
     });
   });
 });

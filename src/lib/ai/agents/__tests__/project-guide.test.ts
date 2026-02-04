@@ -2,12 +2,11 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { HumanMessage, SystemMessage, AIMessage } from '@langchain/core/messages';
 import {
   projectGuideAgent,
-  type ProjectMilestone,
-  type ProjectSubmission,
-  type EvaluationResult,
-  type MilestoneReviewResponse,
-  type ProjectSuggestion,
-  type ProjectSuggestionResponse,
+  type ProjectPlan,
+  type ArchitectureReview,
+  type MilestoneReview,
+  type DebuggingGuide,
+  type DeploymentGuide,
 } from '../project-guide';
 import type { AgentState } from '../../types';
 
@@ -16,19 +15,13 @@ vi.mock('../../models', () => ({
   getModelForAgent: vi.fn(),
 }));
 
-// Mock the prompts module
-vi.mock('../../prompts/project-guide-prompts', () => ({
-  PROJECT_GUIDE_SYSTEM_PROMPT:
-    'You are a project guide for level {level}. Project: {projectName}. Milestone: {milestone}. Requirements: {requirements}. Context: {ragContext}',
-  MILESTONE_CREATION_PROMPT:
-    'Create milestones. Requirements: {projectRequirements}. Difficulty: {difficulty}.',
-  MILESTONE_REVIEW_PROMPT:
-    'Review milestone: {milestoneName}. Description: {milestoneDescription}. Criteria: {milestoneCriteria}. Notes: {submissionNotes}. Code: {codeSnippets}.',
-  SUBMISSION_EVALUATION_PROMPT:
-    'Evaluate submission. Project: {projectId}. GitHub: {githubUrl}. Deployed: {deployedUrl}. Description: {description}. Tech: {technologiesUsed}.',
-  PROJECT_SUGGESTION_PROMPT:
-    'Suggest projects. Skills: {skills}. Interests: {interests}. Difficulty: {difficulty}.',
-}));
+// Mock the prompts module - use real prompts via importOriginal
+vi.mock('../../prompts/project-guide-prompts', async (importOriginal) => {
+  const actual = await importOriginal() as Record<string, unknown>;
+  return {
+    ...actual,
+  };
+});
 
 import { getModelForAgent } from '../../models';
 
@@ -72,77 +65,92 @@ function createMockState(overrides: Partial<AgentState> = {}): AgentState {
   };
 }
 
-// Helper to create milestone
-function createMilestone(overrides: Partial<ProjectMilestone> = {}): ProjectMilestone {
+// Helper to create a project plan response
+function createProjectPlan(overrides: Partial<ProjectPlan> = {}): ProjectPlan {
   return {
-    id: 'milestone-1',
-    name: 'Project Setup',
-    description: 'Initialize project structure and dependencies',
-    criteria: ['Create package.json', 'Set up directory structure', 'Install core dependencies'],
-    status: 'pending',
-    estimatedHours: 2,
-    ...overrides,
-  };
-}
-
-// Helper to create submission
-function createSubmission(overrides: Partial<ProjectSubmission> = {}): ProjectSubmission {
-  return {
-    projectId: 'project-1',
-    userId: 'user-1',
-    githubUrl: 'https://github.com/user/project',
-    deployedUrl: 'https://project.vercel.app',
-    description: 'A full-stack e-commerce application with React and Node.js',
-    technologiesUsed: ['React', 'Node.js', 'PostgreSQL', 'Tailwind CSS'],
-    ...overrides,
-  };
-}
-
-// Helper to create evaluation result
-function createEvaluationResult(
-  overrides: Partial<EvaluationResult> = {}
-): EvaluationResult {
-  return {
-    scores: {
-      codeQuality: 18,
-      functionality: 20,
-      testing: 15,
-      documentation: 10,
-      deployment: 8,
+    overview: 'A full-stack e-commerce application',
+    techStack: ['React', 'Node.js', 'PostgreSQL'],
+    milestones: [
+      {
+        name: 'Project Setup',
+        description: 'Initialize project structure',
+        estimatedDays: 3,
+        tasks: [
+          { name: 'Init repo', description: 'Create repository', skills: ['git'] },
+        ],
+        deliverables: ['Git repo with initial structure'],
+        checkpoints: ['Repo exists with README'],
+      },
+    ],
+    evaluationCriteria: {
+      codeQuality: 'Clean, readable code',
+      functionality: 'All features working',
+      testing: '70%+ coverage',
+      documentation: 'README and API docs',
+      deployment: 'Live URL',
     },
-    totalScore: 71,
-    passed: true,
-    feedback: 'Good overall implementation with room for improvement in testing.',
-    strengths: ['Clean code', 'Good UI/UX', 'Proper error handling'],
-    improvements: ['Add more unit tests', 'Improve documentation'],
-    recommendation: 'approve',
+    resources: ['https://docs.example.com'],
+    tips: ['Start with the data model'],
     ...overrides,
   };
 }
 
-// Helper to create milestone review response
-function createMilestoneReviewResponse(
-  overrides: Partial<MilestoneReviewResponse> = {}
-): MilestoneReviewResponse {
+// Helper to create an architecture review response
+function createArchitectureReview(overrides: Partial<ArchitectureReview> = {}): ArchitectureReview {
   return {
-    approved: true,
-    feedback: 'Great work on completing this milestone!',
-    improvements: ['Consider adding input validation', 'Add error logging'],
-    nextSteps: ['Move on to the next milestone', 'Review the feedback'],
+    score: 75,
+    strengths: ['Good separation of concerns'],
+    concerns: ['Might have scaling issues'],
+    questions: ['Why did you choose this ORM?'],
+    suggestions: ['Consider adding caching'],
+    patterns: ['Repository pattern'],
+    scalabilityNotes: 'Should handle moderate traffic',
+    maintainabilityNotes: 'Well-structured for maintenance',
     ...overrides,
   };
 }
 
-// Helper to create project suggestion
-function createProjectSuggestion(
-  overrides: Partial<ProjectSuggestion> = {}
-): ProjectSuggestion {
+// Helper to create a milestone review response
+function createMilestoneReview(overrides: Partial<MilestoneReview> = {}): MilestoneReview {
   return {
-    title: 'Task Management App',
-    description: 'Build a Trello-like task management application',
-    technologies: ['React', 'Node.js', 'MongoDB', 'Socket.io'],
-    estimatedHours: 40,
-    learningOutcomes: ['Real-time features', 'Drag and drop', 'Authentication'],
+    status: 'approved',
+    completionPercentage: 90,
+    feedback: {
+      completed: ['API endpoints created', 'Auth implemented'],
+      missing: ['Some edge case handling'],
+      improvements: ['Add rate limiting'],
+    },
+    nextSteps: ['Move to frontend integration'],
+    encouragement: 'Great work so far!',
+    ...overrides,
+  };
+}
+
+// Helper to create a debugging guide response
+function createDebuggingGuide(overrides: Partial<DebuggingGuide> = {}): DebuggingGuide {
+  return {
+    problemAnalysis: 'The issue seems to be related to async handling',
+    investigationQuestions: ['Have you checked the network tab?'],
+    debuggingSteps: ['Add console.log before the fetch call'],
+    hints: ['Look at how you handle the Promise'],
+    conceptsToReview: ['async/await', 'error handling'],
+    commonMistakes: ['Forgetting to await'],
+    ...overrides,
+  };
+}
+
+// Helper to create a deployment guide response
+function createDeploymentGuide(overrides: Partial<DeploymentGuide> = {}): DeploymentGuide {
+  return {
+    checklist: [
+      { item: 'Environment variables', description: 'Set all env vars', priority: 'required' },
+    ],
+    environmentVariables: ['DATABASE_URL', 'JWT_SECRET'],
+    cicdSuggestions: ['Use GitHub Actions'],
+    securityChecklist: ['Enable HTTPS'],
+    monitoringSuggestions: ['Set up health checks'],
+    commonIssues: ['Port conflicts'],
+    resources: ['https://vercel.com/docs'],
     ...overrides,
   };
 }
@@ -236,650 +244,432 @@ describe('projectGuideAgent', () => {
     });
   });
 
-  describe('createMilestones', () => {
-    it('should create milestones for beginner difficulty', async () => {
-      const milestones = [
-        createMilestone({ id: 'm1', name: 'Setup', estimatedHours: 1 }),
-        createMilestone({ id: 'm2', name: 'Basic Features', estimatedHours: 4 }),
-        createMilestone({ id: 'm3', name: 'Testing', estimatedHours: 2 }),
-      ];
+  describe('generateProjectPlan', () => {
+    it('should generate a project plan', async () => {
+      const plan = createProjectPlan();
       mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify({ milestones }),
+        content: JSON.stringify(plan),
       });
 
-      const result = await projectGuideAgent.createMilestones(
-        'Build a simple todo app',
-        'beginner'
+      const result = await projectGuideAgent.generateProjectPlan(
+        'E-commerce App',
+        'A full-stack e-commerce platform',
+        30,
+        '4 weeks'
       );
 
       expect(getModelForAgent).toHaveBeenCalledWith('projectGuide');
-      expect(result).toHaveLength(3);
-      expect(result[0].name).toBe('Setup');
+      expect(result.overview).toBe('A full-stack e-commerce application');
+      expect(result.milestones).toHaveLength(1);
+      expect(result.techStack).toContain('React');
     });
 
-    it('should create milestones for intermediate difficulty', async () => {
-      const milestones = [
-        createMilestone({ id: 'm1', name: 'Architecture', estimatedHours: 3 }),
-        createMilestone({ id: 'm2', name: 'Backend API', estimatedHours: 8 }),
-        createMilestone({ id: 'm3', name: 'Frontend', estimatedHours: 10 }),
-        createMilestone({ id: 'm4', name: 'Integration', estimatedHours: 4 }),
-        createMilestone({ id: 'm5', name: 'Deployment', estimatedHours: 3 }),
-      ];
+    it('should return fallback when JSON extraction fails', async () => {
       mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify({ milestones }),
+        content: 'Here is a project plan for you...',
       });
 
-      const result = await projectGuideAgent.createMilestones(
-        'Build a REST API with authentication and database',
-        'intermediate'
+      const result = await projectGuideAgent.generateProjectPlan(
+        'My App',
+        'A simple app',
+        10,
+        '2 weeks'
       );
 
-      expect(result).toHaveLength(5);
-      expect(result.map((m) => m.name)).toContain('Backend API');
+      expect(result.overview).toBe('Unable to generate project plan');
+      expect(result.milestones).toEqual([]);
     });
 
-    it('should create milestones for advanced difficulty', async () => {
-      const milestones = [
-        createMilestone({ id: 'm1', name: 'System Design', estimatedHours: 5 }),
-        createMilestone({ id: 'm2', name: 'Microservices Setup', estimatedHours: 10 }),
-        createMilestone({ id: 'm3', name: 'Event-Driven Architecture', estimatedHours: 12 }),
-        createMilestone({ id: 'm4', name: 'Performance Optimization', estimatedHours: 8 }),
-        createMilestone({ id: 'm5', name: 'Monitoring & Observability', estimatedHours: 6 }),
-        createMilestone({ id: 'm6', name: 'Documentation', estimatedHours: 4 }),
-      ];
+    it('should include all parameters in prompt', async () => {
+      const plan = createProjectPlan();
       mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify({ milestones }),
+        content: JSON.stringify(plan),
       });
 
-      const result = await projectGuideAgent.createMilestones(
-        'Build a distributed system with microservices',
-        'advanced'
+      await projectGuideAgent.generateProjectPlan(
+        'Portfolio Site',
+        'Personal portfolio with projects showcase',
+        50,
+        '3 weeks'
       );
 
-      expect(result).toHaveLength(6);
-      expect(result.map((m) => m.name)).toContain('System Design');
+      expect(mockModel.invoke).toHaveBeenCalledTimes(1);
+      const invokeCall = mockModel.invoke.mock.calls[0][0];
+      expect(invokeCall[0]).toBeInstanceOf(HumanMessage);
+      expect(invokeCall[0].content).toContain('Portfolio Site');
+      expect(invokeCall[0].content).toContain('3 weeks');
     });
+  });
 
-    it('should throw error when JSON extraction fails', async () => {
+  describe('reviewArchitecture', () => {
+    it('should review architecture and return scores', async () => {
+      const review = createArchitectureReview({ score: 85 });
       mockModel.invoke.mockResolvedValue({
-        content: 'Here are some milestones for your project...',
+        content: JSON.stringify(review),
       });
 
-      await expect(
-        projectGuideAgent.createMilestones('Build an app', 'beginner')
-      ).rejects.toThrow('Failed to create milestones');
+      const result = await projectGuideAgent.reviewArchitecture(
+        'E-commerce App',
+        ['React', 'Node.js', 'PostgreSQL'],
+        'MVC with service layer',
+        'src/\n  controllers/\n  services/\n  models/'
+      );
+
+      expect(result.score).toBe(85);
+      expect(result.strengths).toHaveLength(1);
+      expect(result.suggestions).toHaveLength(1);
     });
 
-    it('should throw error when model invocation fails', async () => {
-      mockModel.invoke.mockRejectedValue(new Error('API Error'));
+    it('should return fallback when JSON extraction fails', async () => {
+      mockModel.invoke.mockResolvedValue({
+        content: 'Your architecture looks decent...',
+      });
 
-      await expect(
-        projectGuideAgent.createMilestones('Build an app', 'beginner')
-      ).rejects.toThrow('Failed to create milestones: API Error');
+      const result = await projectGuideAgent.reviewArchitecture(
+        'App',
+        ['React'],
+        'Simple SPA',
+        'src/'
+      );
+
+      expect(result.score).toBe(50);
+      expect(result.strengths).toEqual([]);
+    });
+
+    it('should join tech stack in prompt', async () => {
+      const review = createArchitectureReview();
+      mockModel.invoke.mockResolvedValue({
+        content: JSON.stringify(review),
+      });
+
+      await projectGuideAgent.reviewArchitecture(
+        'App',
+        ['Next.js', 'Prisma', 'PostgreSQL'],
+        'Monolith',
+        'src/'
+      );
+
+      const invokeCall = mockModel.invoke.mock.calls[0][0];
+      expect(invokeCall[0].content).toContain('Next.js, Prisma, PostgreSQL');
     });
   });
 
   describe('reviewMilestone', () => {
-    it('should approve completed milestone', async () => {
-      const response = createMilestoneReviewResponse({
-        approved: true,
-        feedback: 'Excellent work! All criteria met.',
+    it('should approve a completed milestone', async () => {
+      const review = createMilestoneReview({
+        status: 'approved',
+        completionPercentage: 100,
       });
       mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(response),
-      });
-
-      const milestone = createMilestone({
-        name: 'API Implementation',
-        criteria: ['Create endpoints', 'Add validation', 'Write tests'],
+        content: JSON.stringify(review),
       });
 
       const result = await projectGuideAgent.reviewMilestone(
-        milestone,
-        'Completed all API endpoints with proper validation and tests.'
+        'E-commerce App',
+        'API Implementation',
+        'Build all REST endpoints',
+        'All endpoints created with validation and tests'
       );
 
-      expect(result.approved).toBe(true);
-      expect(result.feedback).toContain('Excellent');
+      expect(result.status).toBe('approved');
+      expect(result.completionPercentage).toBe(100);
     });
 
     it('should request revision for incomplete milestone', async () => {
-      const response = createMilestoneReviewResponse({
-        approved: false,
-        feedback: 'Good progress but some criteria are not fully met.',
-        improvements: [
-          'Add error handling to endpoints',
-          'Include integration tests',
-          'Update API documentation',
-        ],
-        nextSteps: [
-          'Review the error handling patterns',
-          'Add missing tests',
-          'Resubmit for review',
-        ],
+      const review = createMilestoneReview({
+        status: 'needs_work',
+        completionPercentage: 60,
+        feedback: {
+          completed: ['Basic endpoints'],
+          missing: ['Auth middleware', 'Tests'],
+          improvements: ['Add input validation'],
+        },
       });
       mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(response),
-      });
-
-      const milestone = createMilestone({
-        name: 'API Implementation',
-        criteria: ['Create endpoints', 'Add error handling', 'Write tests'],
+        content: JSON.stringify(review),
       });
 
       const result = await projectGuideAgent.reviewMilestone(
-        milestone,
-        'Created endpoints but still working on error handling.'
+        'E-commerce App',
+        'API Implementation',
+        'Build all REST endpoints with auth',
+        'Created basic CRUD endpoints'
       );
 
-      expect(result.approved).toBe(false);
-      expect(result.improvements.length).toBeGreaterThan(0);
+      expect(result.status).toBe('needs_work');
+      expect(result.feedback.missing.length).toBeGreaterThan(0);
     });
 
-    it('should include code snippets in review', async () => {
-      const response = createMilestoneReviewResponse();
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(response),
-      });
-
-      const milestone = createMilestone();
-      const codeSnippets = `
-        async function getUsers() {
-          return await db.query('SELECT * FROM users');
-        }
-      `;
-
-      await projectGuideAgent.reviewMilestone(
-        milestone,
-        'Implemented user fetching',
-        codeSnippets
-      );
-
-      expect(mockModel.invoke).toHaveBeenCalled();
-    });
-
-    it('should handle review without code snippets', async () => {
-      const response = createMilestoneReviewResponse();
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(response),
-      });
-
-      const milestone = createMilestone();
-
-      const result = await projectGuideAgent.reviewMilestone(
-        milestone,
-        'Completed the milestone requirements'
-      );
-
-      expect(result).toBeDefined();
-      expect(result.feedback).toBeDefined();
-    });
-
-    it('should throw error when JSON extraction fails', async () => {
+    it('should return fallback when JSON extraction fails', async () => {
       mockModel.invoke.mockResolvedValue({
         content: 'Great job on this milestone!',
       });
 
-      const milestone = createMilestone();
-
-      await expect(
-        projectGuideAgent.reviewMilestone(milestone, 'Completed')
-      ).rejects.toThrow('Failed to review milestone');
-    });
-
-    it('should throw error when model invocation fails', async () => {
-      mockModel.invoke.mockRejectedValue(new Error('Service Error'));
-
-      const milestone = createMilestone();
-
-      await expect(
-        projectGuideAgent.reviewMilestone(milestone, 'Completed')
-      ).rejects.toThrow('Failed to review milestone: Service Error');
-    });
-  });
-
-  describe('evaluateSubmission', () => {
-    it('should evaluate passing submission', async () => {
-      const evaluation = createEvaluationResult({
-        scores: {
-          codeQuality: 18,
-          functionality: 20,
-          testing: 16,
-          documentation: 12,
-          deployment: 10,
-        },
-        totalScore: 76,
-        passed: true,
-        recommendation: 'approve',
-      });
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(evaluation),
-      });
-
-      const submission = createSubmission();
-
-      const result = await projectGuideAgent.evaluateSubmission(submission);
-
-      expect(result.passed).toBe(true);
-      expect(result.recommendation).toBe('approve');
-      expect(result.totalScore).toBeGreaterThanOrEqual(70);
-    });
-
-    it('should evaluate failing submission', async () => {
-      const evaluation = createEvaluationResult({
-        scores: {
-          codeQuality: 12,
-          functionality: 15,
-          testing: 8,
-          documentation: 5,
-          deployment: 5,
-        },
-        totalScore: 45,
-        passed: false,
-        feedback: 'Needs significant improvements in multiple areas.',
-        recommendation: 'revise',
-      });
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(evaluation),
-      });
-
-      const submission = createSubmission();
-
-      const result = await projectGuideAgent.evaluateSubmission(submission);
-
-      expect(result.passed).toBe(false);
-      expect(result.totalScore).toBeLessThan(70);
-    });
-
-    it('should recalculate total score from individual scores', async () => {
-      const evaluation = createEvaluationResult({
-        scores: {
-          codeQuality: 20,
-          functionality: 20,
-          testing: 20,
-          documentation: 15,
-          deployment: 10,
-        },
-        totalScore: 0, // Intentionally wrong
-        passed: false,
-      });
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(evaluation),
-      });
-
-      const submission = createSubmission();
-
-      const result = await projectGuideAgent.evaluateSubmission(submission);
-
-      // Total should be recalculated: 20 + 20 + 20 + 15 + 10 = 85
-      expect(result.totalScore).toBe(85);
-      expect(result.passed).toBe(true);
-    });
-
-    it('should evaluate submission without deployed URL', async () => {
-      const evaluation = createEvaluationResult({
-        scores: {
-          codeQuality: 18,
-          functionality: 18,
-          testing: 15,
-          documentation: 10,
-          deployment: 0,
-        },
-      });
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(evaluation),
-      });
-
-      const submission = createSubmission({
-        deployedUrl: undefined,
-      });
-
-      const result = await projectGuideAgent.evaluateSubmission(submission);
-
-      expect(result).toBeDefined();
-      expect(result.scores.deployment).toBe(0);
-    });
-
-    it('should include strengths and improvements', async () => {
-      const evaluation = createEvaluationResult({
-        strengths: [
-          'Well-organized code structure',
-          'Comprehensive error handling',
-          'Good use of TypeScript',
-        ],
-        improvements: [
-          'Add more edge case tests',
-          'Improve API documentation',
-          'Optimize database queries',
-        ],
-      });
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(evaluation),
-      });
-
-      const submission = createSubmission();
-
-      const result = await projectGuideAgent.evaluateSubmission(submission);
-
-      expect(result.strengths).toHaveLength(3);
-      expect(result.improvements).toHaveLength(3);
-    });
-
-    it('should handle rejection recommendation', async () => {
-      const evaluation = createEvaluationResult({
-        scores: {
-          codeQuality: 5,
-          functionality: 8,
-          testing: 2,
-          documentation: 1,
-          deployment: 0,
-        },
-        totalScore: 16,
-        passed: false,
-        recommendation: 'reject',
-        feedback: 'Project does not meet minimum requirements.',
-      });
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(evaluation),
-      });
-
-      const submission = createSubmission();
-
-      const result = await projectGuideAgent.evaluateSubmission(submission);
-
-      expect(result.recommendation).toBe('reject');
-      expect(result.passed).toBe(false);
-    });
-
-    it('should throw error when JSON extraction fails', async () => {
-      mockModel.invoke.mockResolvedValue({
-        content: 'Your project looks good overall.',
-      });
-
-      const submission = createSubmission();
-
-      await expect(
-        projectGuideAgent.evaluateSubmission(submission)
-      ).rejects.toThrow('Failed to evaluate submission');
-    });
-
-    it('should throw error when model invocation fails', async () => {
-      mockModel.invoke.mockRejectedValue(new Error('Timeout'));
-
-      const submission = createSubmission();
-
-      await expect(
-        projectGuideAgent.evaluateSubmission(submission)
-      ).rejects.toThrow('Failed to evaluate submission: Timeout');
-    });
-  });
-
-  describe('suggestProjects', () => {
-    it('should suggest projects based on skills for beginner', async () => {
-      const suggestions: ProjectSuggestionResponse = {
-        projects: [
-          createProjectSuggestion({
-            title: 'Personal Blog',
-            description: 'Create a simple blog with static pages',
-            technologies: ['HTML', 'CSS', 'JavaScript'],
-            estimatedHours: 15,
-          }),
-          createProjectSuggestion({
-            title: 'Weather App',
-            description: 'Build a weather app using a public API',
-            technologies: ['JavaScript', 'Fetch API', 'CSS'],
-            estimatedHours: 10,
-          }),
-        ],
-      };
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(suggestions),
-      });
-
-      const result = await projectGuideAgent.suggestProjects(
-        ['HTML', 'CSS', 'JavaScript basics'],
-        ['web development'],
-        'beginner'
+      const result = await projectGuideAgent.reviewMilestone(
+        'App',
+        'Setup',
+        'Initialize project',
+        'Done'
       );
 
-      expect(result.projects).toHaveLength(2);
-      expect(result.projects[0].estimatedHours).toBeLessThanOrEqual(20);
+      expect(result.status).toBe('in_progress');
+      expect(result.completionPercentage).toBe(0);
     });
 
-    it('should suggest projects based on skills for intermediate', async () => {
-      const suggestions: ProjectSuggestionResponse = {
-        projects: [
-          createProjectSuggestion({
-            title: 'E-commerce Platform',
-            technologies: ['React', 'Node.js', 'PostgreSQL'],
-            estimatedHours: 60,
-          }),
-          createProjectSuggestion({
-            title: 'Social Media Dashboard',
-            technologies: ['React', 'Redux', 'Chart.js'],
-            estimatedHours: 45,
-          }),
-        ],
-      };
+    it('should return in_progress status', async () => {
+      const review = createMilestoneReview({
+        status: 'in_progress',
+        completionPercentage: 40,
+      });
       mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(suggestions),
+        content: JSON.stringify(review),
       });
 
-      const result = await projectGuideAgent.suggestProjects(
+      const result = await projectGuideAgent.reviewMilestone(
+        'App',
+        'Backend',
+        'Build backend',
+        'Started working on models'
+      );
+
+      expect(result.status).toBe('in_progress');
+      expect(result.completionPercentage).toBe(40);
+    });
+  });
+
+  describe('guideDebugging', () => {
+    it('should provide debugging guidance', async () => {
+      const guide = createDebuggingGuide();
+      mockModel.invoke.mockResolvedValue({
+        content: JSON.stringify(guide),
+      });
+
+      const result = await projectGuideAgent.guideDebugging(
+        'E-commerce App',
+        'TypeError: Cannot read property of undefined',
+        'const data = response.data.items;',
+        'Added null checks but still fails'
+      );
+
+      expect(result.problemAnalysis).toBeDefined();
+      expect(result.debuggingSteps.length).toBeGreaterThan(0);
+      expect(result.hints.length).toBeGreaterThan(0);
+    });
+
+    it('should return fallback when JSON extraction fails', async () => {
+      mockModel.invoke.mockResolvedValue({
+        content: 'Try checking the console logs...',
+      });
+
+      const result = await projectGuideAgent.guideDebugging(
+        'App',
+        'Error',
+        'code',
+        'nothing'
+      );
+
+      expect(result.problemAnalysis).toBe('Unable to analyze');
+      expect(result.debuggingSteps).toEqual([]);
+    });
+
+    it('should include concepts to review', async () => {
+      const guide = createDebuggingGuide({
+        conceptsToReview: ['Promises', 'async/await', 'error boundaries'],
+      });
+      mockModel.invoke.mockResolvedValue({
+        content: JSON.stringify(guide),
+      });
+
+      const result = await projectGuideAgent.guideDebugging(
+        'App',
+        'Unhandled promise rejection',
+        'fetch(url).then(r => r.json())',
+        'Added .catch but not working'
+      );
+
+      expect(result.conceptsToReview).toHaveLength(3);
+      expect(result.conceptsToReview).toContain('Promises');
+    });
+  });
+
+  describe('generateDeploymentGuide', () => {
+    it('should generate deployment guide', async () => {
+      const guide = createDeploymentGuide();
+      mockModel.invoke.mockResolvedValue({
+        content: JSON.stringify(guide),
+      });
+
+      const result = await projectGuideAgent.generateDeploymentGuide(
+        'E-commerce App',
         ['React', 'Node.js', 'PostgreSQL'],
-        ['full-stack development'],
-        'intermediate'
+        'Vercel',
+        'Development complete, ready for deployment'
       );
 
-      expect(result.projects).toHaveLength(2);
-      expect(result.projects.map((p) => p.technologies).flat()).toContain('React');
+      expect(result.checklist.length).toBeGreaterThan(0);
+      expect(result.environmentVariables.length).toBeGreaterThan(0);
+      expect(result.checklist[0].priority).toBe('required');
     });
 
-    it('should suggest projects based on skills for advanced', async () => {
-      const suggestions: ProjectSuggestionResponse = {
-        projects: [
-          createProjectSuggestion({
-            title: 'Real-time Collaboration Tool',
-            technologies: ['Next.js', 'WebSocket', 'Redis', 'PostgreSQL'],
-            estimatedHours: 100,
-            learningOutcomes: [
-              'Real-time sync',
-              'Conflict resolution',
-              'Scaling WebSockets',
-            ],
-          }),
-          createProjectSuggestion({
-            title: 'ML Model Deployment Platform',
-            technologies: ['Python', 'FastAPI', 'Docker', 'Kubernetes'],
-            estimatedHours: 80,
-          }),
-        ],
-      };
+    it('should return fallback when JSON extraction fails', async () => {
       mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(suggestions),
+        content: 'Here are the deployment steps...',
       });
 
-      const result = await projectGuideAgent.suggestProjects(
-        ['TypeScript', 'React', 'Node.js', 'Docker', 'AWS'],
-        ['distributed systems', 'machine learning'],
-        'advanced'
+      const result = await projectGuideAgent.generateDeploymentGuide(
+        'App',
+        ['React'],
+        'AWS',
+        'Ready'
       );
 
-      expect(result.projects).toHaveLength(2);
-      expect(result.projects[0].estimatedHours).toBeGreaterThanOrEqual(80);
+      expect(result.checklist).toEqual([]);
+      expect(result.resources).toEqual([]);
     });
 
-    it('should handle empty skills array', async () => {
-      const suggestions: ProjectSuggestionResponse = {
-        projects: [
-          createProjectSuggestion({
-            title: 'Learn to Code Portfolio',
-            description: 'Start with the basics',
-            technologies: ['HTML', 'CSS'],
-          }),
-        ],
-      };
+    it('should join tech stack in prompt', async () => {
+      const guide = createDeploymentGuide();
       mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(suggestions),
+        content: JSON.stringify(guide),
       });
 
-      const result = await projectGuideAgent.suggestProjects(
-        [],
-        ['web development'],
-        'beginner'
+      await projectGuideAgent.generateDeploymentGuide(
+        'App',
+        ['Next.js', 'Prisma', 'PostgreSQL'],
+        'Railway',
+        'Built and tested'
       );
 
-      expect(result.projects).toBeDefined();
+      const invokeCall = mockModel.invoke.mock.calls[0][0];
+      expect(invokeCall[0].content).toContain('Next.js, Prisma, PostgreSQL');
     });
 
-    it('should handle empty interests array', async () => {
-      const suggestions: ProjectSuggestionResponse = {
-        projects: [createProjectSuggestion()],
-      };
+    it('should include security checklist', async () => {
+      const guide = createDeploymentGuide({
+        securityChecklist: ['Enable HTTPS', 'Set CORS headers', 'Sanitize inputs'],
+      });
       mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(suggestions),
+        content: JSON.stringify(guide),
       });
 
-      const result = await projectGuideAgent.suggestProjects(
-        ['JavaScript'],
-        [],
-        'beginner'
+      const result = await projectGuideAgent.generateDeploymentGuide(
+        'App',
+        ['Node.js'],
+        'Heroku',
+        'Code complete'
       );
 
-      expect(result.projects).toBeDefined();
-    });
-
-    it('should include learning outcomes in suggestions', async () => {
-      const suggestions: ProjectSuggestionResponse = {
-        projects: [
-          createProjectSuggestion({
-            learningOutcomes: [
-              'RESTful API design',
-              'Database modeling',
-              'Authentication & Authorization',
-              'Deployment to cloud',
-            ],
-          }),
-        ],
-      };
-      mockModel.invoke.mockResolvedValue({
-        content: JSON.stringify(suggestions),
-      });
-
-      const result = await projectGuideAgent.suggestProjects(
-        ['JavaScript', 'Node.js'],
-        ['backend development'],
-        'intermediate'
-      );
-
-      expect(result.projects[0].learningOutcomes).toHaveLength(4);
-    });
-
-    it('should throw error when JSON extraction fails', async () => {
-      mockModel.invoke.mockResolvedValue({
-        content: 'Here are some project ideas for you...',
-      });
-
-      await expect(
-        projectGuideAgent.suggestProjects(['JavaScript'], ['web'], 'beginner')
-      ).rejects.toThrow('Failed to suggest projects');
-    });
-
-    it('should throw error when model invocation fails', async () => {
-      mockModel.invoke.mockRejectedValue(new Error('Rate Limited'));
-
-      await expect(
-        projectGuideAgent.suggestProjects(['JavaScript'], ['web'], 'beginner')
-      ).rejects.toThrow('Failed to suggest projects: Rate Limited');
+      expect(result.securityChecklist).toHaveLength(3);
     });
   });
 
   describe('error handling', () => {
-    it('should handle malformed JSON in createMilestones', async () => {
+    it('should handle malformed JSON in generateProjectPlan', async () => {
       mockModel.invoke.mockResolvedValue({
-        content: '{ "milestones": [ { "name": invalid',
+        content: '{ "overview": "plan" invalid',
       });
 
-      await expect(
-        projectGuideAgent.createMilestones('Build app', 'beginner')
-      ).rejects.toThrow('Failed to create milestones');
+      const result = await projectGuideAgent.generateProjectPlan(
+        'App', 'Desc', 10, '2 weeks'
+      );
+
+      // Falls back to default
+      expect(result.overview).toBe('Unable to generate project plan');
+    });
+
+    it('should handle malformed JSON in reviewArchitecture', async () => {
+      mockModel.invoke.mockResolvedValue({
+        content: '{ "score": 80 broken',
+      });
+
+      const result = await projectGuideAgent.reviewArchitecture(
+        'App', ['React'], 'SPA', 'src/'
+      );
+
+      expect(result.score).toBe(50);
     });
 
     it('should handle malformed JSON in reviewMilestone', async () => {
       mockModel.invoke.mockResolvedValue({
-        content: '{ "approved": true broken',
+        content: '{ "status": "approved" broken',
       });
 
-      const milestone = createMilestone();
+      const result = await projectGuideAgent.reviewMilestone(
+        'App', 'Setup', 'Init', 'Done'
+      );
 
-      await expect(
-        projectGuideAgent.reviewMilestone(milestone, 'Notes')
-      ).rejects.toThrow('Failed to review milestone');
+      expect(result.status).toBe('in_progress');
     });
 
-    it('should handle malformed JSON in evaluateSubmission', async () => {
+    it('should handle malformed JSON in guideDebugging', async () => {
       mockModel.invoke.mockResolvedValue({
-        content: '{ "scores": { } invalid',
+        content: '{ "problemAnalysis": invalid',
       });
 
-      const submission = createSubmission();
+      const result = await projectGuideAgent.guideDebugging(
+        'App', 'Error', 'code', 'tried stuff'
+      );
 
-      await expect(
-        projectGuideAgent.evaluateSubmission(submission)
-      ).rejects.toThrow('Failed to evaluate submission');
+      expect(result.problemAnalysis).toBe('Unable to analyze');
     });
 
-    it('should handle malformed JSON in suggestProjects', async () => {
+    it('should handle malformed JSON in generateDeploymentGuide', async () => {
       mockModel.invoke.mockResolvedValue({
-        content: '{ "projects": [ broken',
+        content: '{ "checklist": [ } invalid',
       });
 
-      await expect(
-        projectGuideAgent.suggestProjects(['JS'], ['web'], 'beginner')
-      ).rejects.toThrow('Failed to suggest projects');
+      const result = await projectGuideAgent.generateDeploymentGuide(
+        'App', ['React'], 'Vercel', 'Ready'
+      );
+
+      expect(result.checklist).toEqual([]);
     });
   });
 
   describe('integration scenarios', () => {
     it('should handle complete project workflow', async () => {
-      // Step 1: Create milestones
-      const milestones = [
-        createMilestone({ id: 'm1', name: 'Setup' }),
-        createMilestone({ id: 'm2', name: 'Implementation' }),
-        createMilestone({ id: 'm3', name: 'Testing' }),
-      ];
+      // Step 1: Generate project plan
+      const plan = createProjectPlan();
       mockModel.invoke.mockResolvedValueOnce({
-        content: JSON.stringify({ milestones }),
+        content: JSON.stringify(plan),
       });
 
-      const createdMilestones = await projectGuideAgent.createMilestones(
-        'Build API',
-        'intermediate'
+      const projectPlan = await projectGuideAgent.generateProjectPlan(
+        'E-commerce App',
+        'Full-stack e-commerce platform',
+        30,
+        '4 weeks'
       );
 
-      // Step 2: Review milestone
-      const reviewResponse = createMilestoneReviewResponse({ approved: true });
+      // Step 2: Review architecture
+      const archReview = createArchitectureReview({ score: 80 });
       mockModel.invoke.mockResolvedValueOnce({
-        content: JSON.stringify(reviewResponse),
+        content: JSON.stringify(archReview),
       });
 
-      const review = await projectGuideAgent.reviewMilestone(
-        createdMilestones[0],
-        'Completed setup'
+      const architectureResult = await projectGuideAgent.reviewArchitecture(
+        'E-commerce App',
+        projectPlan.techStack,
+        'MVC with service layer',
+        'src/controllers/ src/services/ src/models/'
       );
 
-      // Step 3: Evaluate final submission
-      const evaluation = createEvaluationResult({ passed: true });
+      // Step 3: Review milestone
+      const milestoneReview = createMilestoneReview({ status: 'approved' });
       mockModel.invoke.mockResolvedValueOnce({
-        content: JSON.stringify(evaluation),
+        content: JSON.stringify(milestoneReview),
       });
 
-      const submission = createSubmission();
-      const evalResult = await projectGuideAgent.evaluateSubmission(submission);
+      const milestoneResult = await projectGuideAgent.reviewMilestone(
+        'E-commerce App',
+        projectPlan.milestones[0].name,
+        'Initialize project',
+        'Project initialized with all dependencies'
+      );
 
-      expect(createdMilestones).toHaveLength(3);
-      expect(review.approved).toBe(true);
-      expect(evalResult.passed).toBe(true);
+      expect(projectPlan.milestones).toHaveLength(1);
+      expect(architectureResult.score).toBe(80);
+      expect(milestoneResult.status).toBe('approved');
       expect(mockModel.invoke).toHaveBeenCalledTimes(3);
     });
   });
