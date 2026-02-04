@@ -67,6 +67,7 @@ function createMockContext(user: { id: string; email: string; name: string; role
     })),
     select: vi.fn(() => ({
       from: vi.fn(() => ({
+        where: vi.fn().mockResolvedValue([{ total: 0 }]),
         orderBy: vi.fn(() => ({
           limit: vi.fn(),
         })),

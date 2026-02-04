@@ -23,6 +23,7 @@ export const gamificationRouter = router({
       return {
         ...newProfile,
         levelProgress: getXPProgressInLevel(0),
+        weeklyXP: 0,
       };
     }
 
@@ -37,12 +38,22 @@ export const gamificationRouter = router({
       limit: 10,
     });
 
+    const weekStart = startOfWeek(new Date());
+    const weeklyXPResult = await ctx.db
+      .select({ total: sql<number>`COALESCE(SUM(${xpTransactions.amount}), 0)` })
+      .from(xpTransactions)
+      .where(and(
+        eq(xpTransactions.userId, ctx.user.id),
+        gte(xpTransactions.createdAt, weekStart)
+      ));
+
     return {
       ...profile,
       level: calculateLevelFromXP(profile.totalXp),
       levelProgress: getXPProgressInLevel(profile.totalXp),
       achievements: earnedAchievements,
       recentXP,
+      weeklyXP: weeklyXPResult[0]?.total || 0,
     };
   }),
 

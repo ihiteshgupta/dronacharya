@@ -101,6 +101,28 @@ export const userRouter = router({
     };
   }),
 
+  saveOnboarding: protectedProcedure
+    .input(z.object({
+      domains: z.array(z.string()),
+      experienceLevel: z.enum(['beginner', 'intermediate', 'advanced']),
+      dailyGoal: z.number().min(5).max(120),
+      learningPace: z.enum(['relaxed', 'steady', 'intensive']),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .update(userProfiles)
+        .set({
+          studyPreferences: {
+            domains: input.domains,
+            experienceLevel: input.experienceLevel,
+            dailyGoalMinutes: input.dailyGoal,
+            learningPace: input.learningPace,
+          },
+        })
+        .where(eq(userProfiles.userId, ctx.user.id));
+      return { success: true };
+    }),
+
   deleteAccount: protectedProcedure
     .input(z.object({
       confirmEmail: z.string().email(),

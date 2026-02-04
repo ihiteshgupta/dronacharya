@@ -55,6 +55,10 @@ export interface StudyPreferences {
   preferredTimes?: string[];
   sessionDuration?: number;
   interests?: string[];
+  domains?: string[];
+  experienceLevel?: 'beginner' | 'intermediate' | 'advanced';
+  dailyGoalMinutes?: number;
+  learningPace?: 'relaxed' | 'steady' | 'intensive';
 }
 
 export interface SkillMap {

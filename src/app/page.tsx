@@ -105,7 +105,9 @@ export default function Dashboard() {
               <div className="text-3xl font-bold">{(profile?.totalXp || 0).toLocaleString()}</div>
               <div className="flex items-center gap-1 mt-1">
                 <TrendingUp className="h-3 w-3 text-emerald" />
-                <span className="text-xs text-emerald font-medium">+250 this week</span>
+                <span className="text-xs text-emerald font-medium">
+                  +{(profile?.weeklyXP || 0).toLocaleString()} this week
+                </span>
               </div>
             </CardContent>
           </Card>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useOnboardingStore, type OnboardingData } from '@/stores/onboarding-store';
+import { trpc } from '@/lib/trpc/client';
 import {
   Dialog,
   DialogContent,
@@ -105,8 +106,22 @@ interface OnboardingWizardProps {
 export function OnboardingWizard({ open, onComplete }: OnboardingWizardProps) {
   const { currentStep, data, nextStep, prevStep, updateData, completeOnboarding } =
     useOnboardingStore();
+  const saveOnboarding = trpc.user.saveOnboarding.useMutation();
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
+    // Save to database
+    try {
+      await saveOnboarding.mutateAsync({
+        domains: data.domains,
+        experienceLevel: data.experienceLevel!,
+        dailyGoal: data.dailyGoal,
+        learningPace: data.learningPace!,
+      });
+    } catch {
+      // Continue with local store update even if DB save fails
+      console.error('Failed to save onboarding to database');
+    }
+    // Update local store
     completeOnboarding();
     onComplete?.();
   };
