@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: default-deny-all
-  namespace: learnflow
+  namespace: dronacharya
 spec:
   podSelector: {}
   policyTypes:
@@ -13,11 +13,11 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-web-ingress
-  namespace: learnflow
+  namespace: dronacharya
 spec:
   podSelector:
     matchLabels:
-      app: learnflow-web
+      app: dronacharya-web
   policyTypes:
     - Ingress
   ingress:
@@ -34,11 +34,11 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-web-egress
-  namespace: learnflow
+  namespace: dronacharya
 spec:
   podSelector:
     matchLabels:
-      app: learnflow-web
+      app: dronacharya-web
   policyTypes:
     - Egress
   egress:
@@ -48,59 +48,17 @@ spec:
       ports:
         - protocol: UDP
           port: 53
-    # Allow to AI service
-    - to:
-        - podSelector:
-            matchLabels:
-              app: learnflow-ai
-      ports:
-        - protocol: TCP
-          port: 5000
-    # Allow to external services (database, redis, APIs)
-    - to:
-        - ipBlock:
-            cidr: 0.0.0.0/0
-            except:
-              - 10.0.0.0/8
-              - 172.16.0.0/12
-              - 192.168.0.0/16
-      ports:
-        - protocol: TCP
-          port: 443
-        - protocol: TCP
-          port: 5432
-        - protocol: TCP
-          port: 6379
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-ai-egress
-  namespace: learnflow
-spec:
-  podSelector:
-    matchLabels:
-      app: learnflow-ai
-  policyTypes:
-    - Ingress
-    - Egress
-  ingress:
-    # Allow from web service
-    - from:
-        - podSelector:
-            matchLabels:
-              app: learnflow-web
-      ports:
-        - protocol: TCP
-          port: 5000
-  egress:
-    # Allow DNS
+    # Allow in-cluster services (DB, Redis, Qdrant may run in-cluster)
     - to:
         - namespaceSelector: {}
       ports:
-        - protocol: UDP
-          port: 53
-    # Allow to external AI APIs (Anthropic, OpenAI) and Qdrant
+        - protocol: TCP
+          port: 5432  # PostgreSQL
+        - protocol: TCP
+          port: 6379  # Redis
+        - protocol: TCP
+          port: 6333  # Qdrant
+    # Allow external HTTPS (AI APIs, external services)
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
@@ -110,6 +68,4 @@ spec:
               - 192.168.0.0/16
       ports:
         - protocol: TCP
-          port: 443
-        - protocol: TCP
-          port: 6333
+          port: 443  # HTTPS (AI APIs)

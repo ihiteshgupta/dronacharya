@@ -61,7 +61,7 @@ const TRACKS = [
     estimatedHours: 30,
     prerequisites: ['Python Fundamentals'],
     skillsGained: ['OOP Mastery', 'Error Handling', 'File I/O', 'Modules & Packages'],
-    isPublished: true,
+    isPublished: false, // No courses yet — unpublish until content is added
   },
   // Data Science Tracks
   {
@@ -84,7 +84,7 @@ const TRACKS = [
     estimatedHours: 30,
     prerequisites: ['Data Analysis with Python'],
     skillsGained: ['Hypothesis Testing', 'Regression', 'Probability', 'Statistical Inference'],
-    isPublished: true,
+    isPublished: false, // No courses yet — unpublish until content is added
   },
   // ML Tracks
   {

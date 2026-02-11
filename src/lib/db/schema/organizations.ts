@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, jsonb, timestamp, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, jsonb, timestamp, integer, index, unique } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './users';
 
@@ -16,30 +16,36 @@ export const organizations = pgTable('organizations', {
 
 export const teams = pgTable('teams', {
   id: uuid('id').primaryKey().defaultRandom(),
-  orgId: uuid('org_id').notNull(),
+  orgId: uuid('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 255 }).notNull(),
   description: text('description'),
-  managerId: uuid('manager_id'),
+  managerId: uuid('manager_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (table) => [
+  index('teams_org_id_idx').on(table.orgId),
+]);
 
 // Organization members (many-to-many with roles)
 export const organizationMembers = pgTable('organization_members', {
   id: uuid('id').primaryKey().defaultRandom(),
-  orgId: uuid('org_id').notNull(),
-  userId: uuid('user_id').notNull(),
+  orgId: uuid('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   role: varchar('role', { length: 20 }).notNull().default('member'),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
-});
+}, (table) => [
+  unique().on(table.orgId, table.userId),
+]);
 
 // Team members (many-to-many with roles)
 export const teamMembers = pgTable('team_members', {
   id: uuid('id').primaryKey().defaultRandom(),
-  teamId: uuid('team_id').notNull(),
-  userId: uuid('user_id').notNull(),
+  teamId: uuid('team_id').notNull().references(() => teams.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   role: varchar('role', { length: 20 }).notNull().default('member'),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
-});
+}, (table) => [
+  unique().on(table.teamId, table.userId),
+]);
 
 // Relations
 export const organizationsRelations = relations(organizations, ({ many }) => ({

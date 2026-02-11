@@ -19,12 +19,22 @@ spec:
         prometheus.io/port: "3000"
         prometheus.io/path: "/api/metrics"
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
         - name: web
           image: dronacharya/web:latest
           ports:
             - containerPort: 3000
               name: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           resources:
             requests:
               memory: "256Mi"
@@ -56,6 +66,16 @@ spec:
                 secretKeyRef:
                   name: dronacharya-secrets
                   key: nextauth-secret
+            - name: QDRANT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: dronacharya-secrets
+                  key: qdrant-url
+            - name: QDRANT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dronacharya-secrets
+                  key: qdrant-api-key
           livenessProbe:
             httpGet:
               path: /api/health
@@ -66,7 +86,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /api/health
+              path: /api/ready
               port: 3000
             initialDelaySeconds: 5
             periodSeconds: 5

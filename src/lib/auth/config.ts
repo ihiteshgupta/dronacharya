@@ -29,7 +29,7 @@ export const authConfig: NextAuthConfig = {
         const { email, password } = parsed.data;
 
         // Rate limiting by email
-        const rateLimit = checkRateLimit(`login:${email}`);
+        const rateLimit = await checkRateLimit(`login:${email}`);
         if (!rateLimit.allowed) {
           console.warn(`Rate limit exceeded for ${email}`);
           throw new Error('Too many login attempts. Please try again later.');
@@ -50,7 +50,7 @@ export const authConfig: NextAuthConfig = {
           }
 
           // Reset rate limit on successful login
-          resetRateLimit(`login:${email}`);
+          await resetRateLimit(`login:${email}`);
 
           return {
             id: user.id,
@@ -91,6 +91,20 @@ export const authConfig: NextAuthConfig = {
   },
   session: {
     strategy: 'jwt',
+    maxAge: 24 * 60 * 60, // 24 hours
+  },
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === 'production'
+        ? '__Secure-next-auth.session-token'
+        : 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

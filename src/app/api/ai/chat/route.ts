@@ -1,21 +1,70 @@
 import { HumanMessage, AIMessage } from '@langchain/core/messages';
 import { eq, and } from 'drizzle-orm';
+import { z } from 'zod';
 import { chat } from '@/lib/ai/orchestrator';
 import { db, users, userProfiles, lessons, aiSessions, aiMessages } from '@/lib/db';
+import { auth } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/auth/rate-limit';
+import { env } from '@/lib/env';
 import type { TeachingMode } from '@/lib/ai/types';
+import { sanitizeUserMessage } from '@/lib/ai/utils/sanitize';
+
+const chatRequestSchema = z.object({
+  messages: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string().max(10000),
+  })).min(1).max(50),
+  lessonId: z.string().uuid().optional(),
+});
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
-    // Get user from header (replace with proper auth)
-    const userId = req.headers.get('x-user-id');
-    if (!userId) {
-      return new Response('Unauthorized', { status: 401 });
+    // Require authentication with NextAuth session
+    const session = await auth();
+    if (!session?.user?.id) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    const { messages, lessonId } = await req.json();
+    const userId = session.user.id;
+
+    // Rate limit: MAX_AI_REQUESTS_PER_MINUTE per user per minute
+    const rateLimit = await checkRateLimit(`ai:${userId}`, {
+      maxAttempts: env.MAX_AI_REQUESTS_PER_MINUTE,
+      windowMs: 60 * 1000,
+    });
+    if (!rateLimit.allowed) {
+      return new Response(JSON.stringify({
+        error: 'Rate limit exceeded. Please wait before sending more messages.',
+        retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+      }), {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'Retry-After': String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
+        },
+      });
+    }
+
+    // Validate request body
+    const body = await req.json();
+    const parsed = chatRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return new Response(JSON.stringify({
+        error: 'Invalid request',
+        details: parsed.error.issues,
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { messages, lessonId } = parsed.data;
 
     // Get user profile
     const user = await db.query.users.findFirst({
@@ -65,15 +114,19 @@ export async function POST(req: Request) {
       }
     }
 
-    // Convert messages to LangChain format
+    // Convert messages to LangChain format with sanitization
     const previousMessages = messages.slice(0, -1).map((m: { role: string; content: string }) =>
-      m.role === 'user' ? new HumanMessage(m.content) : new AIMessage(m.content)
+      m.role === 'user'
+        ? new HumanMessage(sanitizeUserMessage(m.content))
+        : new AIMessage(m.content) // Don't sanitize AI messages
     );
 
-    const userMessage = messages[messages.length - 1].content;
+    // Sanitize the current user message
+    const rawUserMessage = messages[messages.length - 1].content;
+    const userMessage = sanitizeUserMessage(rawUserMessage);
 
     // Get or create AI session
-    const session = await db.query.aiSessions.findFirst({
+    const aiSession = await db.query.aiSessions.findFirst({
       where: and(
         eq(aiSessions.userId, userId),
         eq(aiSessions.lessonId, lessonId || ''),
@@ -81,9 +134,9 @@ export async function POST(req: Request) {
       ),
     });
 
-    const sessionId = session?.id || crypto.randomUUID();
+    const sessionId = aiSession?.id || crypto.randomUUID();
 
-    if (!session) {
+    if (!aiSession) {
       await db.insert(aiSessions).values({
         id: sessionId,
         userId,

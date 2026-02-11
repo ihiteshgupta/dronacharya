@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/auth/rate-limit';
 import { executeCode, runTestCases, type TestCase } from '@/lib/sandbox/executor';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/lib/sandbox/languages';
 
@@ -27,6 +28,24 @@ export async function POST(req: Request) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Rate limit: 20 executions per minute per user
+    const rateLimit = await checkRateLimit(`sandbox:${session.user.id}`, {
+      maxAttempts: 20,
+      windowMs: 60 * 1000,
+    });
+    if (!rateLimit.allowed) {
+      return new Response(JSON.stringify({
+        error: 'Rate limit exceeded. Please wait before running more code.',
+        retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+      }), {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'Retry-After': String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
+        },
       });
     }
 

@@ -1,6 +1,7 @@
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from './languages';
 
-const PISTON_URL = process.env.PISTON_URL || 'https://emkc.org/api/v2/piston';
+// PISTON_URL is required in production (validated in env.ts). No public fallback.
+const PISTON_URL = process.env.PISTON_URL;
 const TIMEOUT_MS = 10000; // 10 seconds
 const MEMORY_LIMIT = 128 * 1024 * 1024; // 128MB
 
@@ -46,6 +47,14 @@ export async function executeCode(
   language: SupportedLanguage,
   stdin?: string
 ): Promise<ExecutionResult> {
+  if (!PISTON_URL) {
+    return {
+      success: false,
+      output: '',
+      error: 'Code execution is not configured. PISTON_URL is not set.',
+    };
+  }
+
   const langConfig = SUPPORTED_LANGUAGES[language];
 
   if (!langConfig) {

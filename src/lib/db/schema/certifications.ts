@@ -1,12 +1,12 @@
-import { pgTable, uuid, varchar, text, timestamp, integer, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, integer, jsonb, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './users';
 import { courses } from './content';
 
 export const certifications = pgTable('certifications', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull(),
-  courseId: uuid('course_id').notNull(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
   tier: varchar('tier', { length: 10 }).notNull(),
   credentialId: varchar('credential_id', { length: 50 }).notNull().unique(),
   status: varchar('status', { length: 20 }).notNull().default('active'), // pending, active, revoked, rejected
@@ -14,16 +14,19 @@ export const certifications = pgTable('certifications', {
   expiresAt: timestamp('expires_at'),
   projectUrl: varchar('project_url', { length: 500 }),
   projectRepo: varchar('project_repo', { length: 500 }),
-  reviewedBy: uuid('reviewed_by'),
+  reviewedBy: uuid('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
   reviewFeedback: text('review_feedback'),
   metadata: jsonb('metadata').$type<CertMetadata>(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (table) => [
+  index('certifications_user_id_idx').on(table.userId),
+  index('certifications_course_id_idx').on(table.courseId),
+]);
 
 export const assessments = pgTable('assessments', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull(),
-  courseId: uuid('course_id').notNull(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
   type: varchar('type', { length: 20 }).notNull(),
   status: varchar('status', { length: 20 }).notNull().default('pending'),
   score: integer('score'),
@@ -33,18 +36,23 @@ export const assessments = pgTable('assessments', {
   answers: jsonb('answers').$type<AssessmentAnswers>(),
   feedback: jsonb('feedback').$type<AssessmentFeedback>(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (table) => [
+  index('assessments_user_id_idx').on(table.userId),
+  index('assessments_course_id_idx').on(table.courseId),
+]);
 
 export const assessmentQuestions = pgTable('assessment_questions', {
   id: uuid('id').primaryKey().defaultRandom(),
-  assessmentId: uuid('assessment_id').notNull(),
+  assessmentId: uuid('assessment_id').notNull().references(() => assessments.id, { onDelete: 'cascade' }),
   questionType: varchar('question_type', { length: 50 }).notNull(),
   question: text('question').notNull(),
   options: jsonb('options').$type<string[]>(),
   correctAnswer: text('correct_answer'),
   points: integer('points').notNull().default(1),
   order: integer('order').notNull(),
-});
+}, (table) => [
+  index('assessment_questions_assessment_id_idx').on(table.assessmentId),
+]);
 
 // Relations
 export const certificationsRelations = relations(certifications, ({ one }) => ({

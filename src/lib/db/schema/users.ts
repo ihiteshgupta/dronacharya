@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, jsonb, timestamp, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, jsonb, timestamp, integer, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 export const users = pgTable('users', {
@@ -16,7 +16,7 @@ export const users = pgTable('users', {
 });
 
 export const userProfiles = pgTable('user_profiles', {
-  userId: uuid('user_id').primaryKey(),
+  userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
   level: integer('level').notNull().default(1),
   totalXp: integer('total_xp').notNull().default(0),
   currentStreak: integer('current_streak').notNull().default(0),
@@ -26,7 +26,9 @@ export const userProfiles = pgTable('user_profiles', {
   studyPreferences: jsonb('study_preferences').$type<StudyPreferences>(),
   skillMap: jsonb('skill_map').$type<SkillMap>(),
   lastActiveAt: timestamp('last_active_at'),
-});
+}, (table) => [
+  index('user_profiles_last_active_at_idx').on(table.lastActiveAt),
+]);
 
 // Relations
 export const usersRelations = relations(users, ({ one }) => ({

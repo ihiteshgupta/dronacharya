@@ -1,24 +1,25 @@
-import { pgTable, uuid, varchar, timestamp, integer, jsonb, unique } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, integer, jsonb, unique, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './users';
 import { tracks, courses, lessons } from './content';
 
 export const enrollments = pgTable('enrollments', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull(),
-  trackId: uuid('track_id').notNull(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  trackId: uuid('track_id').notNull().references(() => tracks.id, { onDelete: 'cascade' }),
   status: varchar('status', { length: 20 }).notNull().default('active'),
   startedAt: timestamp('started_at').defaultNow().notNull(),
   targetDate: timestamp('target_date'),
   completedAt: timestamp('completed_at'),
-}, (table) => ({
-  userTrackUnique: unique().on(table.userId, table.trackId),
-}));
+}, (table) => [
+  unique().on(table.userId, table.trackId),
+  index('enrollments_user_id_idx').on(table.userId),
+]);
 
 export const progress = pgTable('progress', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull(),
-  lessonId: uuid('lesson_id').notNull(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  lessonId: uuid('lesson_id').notNull().references(() => lessons.id, { onDelete: 'cascade' }),
   status: varchar('status', { length: 20 }).notNull().default('not_started'),
   score: integer('score'),
   attempts: integer('attempts').default(0),
@@ -27,15 +28,16 @@ export const progress = pgTable('progress', {
   metadata: jsonb('metadata').$type<ProgressMetadata>(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => ({
-  userLessonUnique: unique().on(table.userId, table.lessonId),
-}));
+}, (table) => [
+  unique().on(table.userId, table.lessonId),
+  index('progress_user_id_idx').on(table.userId),
+]);
 
 // Course-level progress tracking
 export const courseProgress = pgTable('course_progress', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull(),
-  courseId: uuid('course_id').notNull(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
   status: varchar('status', { length: 20 }).notNull().default('not_started'), // not_started, in_progress, completed
   completedLessons: integer('completed_lessons').default(0),
   totalLessons: integer('total_lessons').default(0),
@@ -43,9 +45,10 @@ export const courseProgress = pgTable('course_progress', {
   startedAt: timestamp('started_at'),
   completedAt: timestamp('completed_at'),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => ({
-  userCourseUnique: unique().on(table.userId, table.courseId),
-}));
+}, (table) => [
+  unique().on(table.userId, table.courseId),
+  index('course_progress_user_id_idx').on(table.userId),
+]);
 
 // Relations
 export const enrollmentsRelations = relations(enrollments, ({ one }) => ({

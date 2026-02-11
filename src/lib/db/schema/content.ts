@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, jsonb, timestamp, integer, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, jsonb, timestamp, integer, boolean, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 export const domains = pgTable('domains', {
@@ -13,7 +13,7 @@ export const domains = pgTable('domains', {
 
 export const tracks = pgTable('tracks', {
   id: uuid('id').primaryKey().defaultRandom(),
-  domainId: uuid('domain_id').notNull(),
+  domainId: uuid('domain_id').notNull().references(() => domains.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 255 }).notNull(),
   slug: varchar('slug', { length: 255 }).notNull().unique(),
   description: text('description'),
@@ -24,34 +24,40 @@ export const tracks = pgTable('tracks', {
   isPublished: boolean('is_published').default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => [
+  index('tracks_domain_id_idx').on(table.domainId),
+]);
 
 export const courses = pgTable('courses', {
   id: uuid('id').primaryKey().defaultRandom(),
-  trackId: uuid('track_id').notNull(),
+  trackId: uuid('track_id').notNull().references(() => tracks.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 255 }).notNull(),
-  slug: varchar('slug', { length: 255 }).notNull(),
+  slug: varchar('slug', { length: 255 }).notNull().unique(),
   description: text('description'),
   order: integer('order').notNull().default(0),
   estimatedMinutes: integer('estimated_minutes'),
   isPublished: boolean('is_published').default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (table) => [
+  index('courses_track_id_idx').on(table.trackId),
+]);
 
 export const modules = pgTable('modules', {
   id: uuid('id').primaryKey().defaultRandom(),
-  courseId: uuid('course_id').notNull(),
+  courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 255 }).notNull(),
   description: text('description'),
   order: integer('order').notNull().default(0),
   type: varchar('type', { length: 50 }).notNull().default('concept'),
   estimatedMinutes: integer('estimated_minutes'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (table) => [
+  index('modules_course_id_idx').on(table.courseId),
+]);
 
 export const lessons = pgTable('lessons', {
   id: uuid('id').primaryKey().defaultRandom(),
-  moduleId: uuid('module_id').notNull(),
+  moduleId: uuid('module_id').notNull().references(() => modules.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 255 }).notNull(),
   type: varchar('type', { length: 50 }).notNull().default('concept'),
   order: integer('order').notNull().default(0),
@@ -59,7 +65,9 @@ export const lessons = pgTable('lessons', {
   aiConfig: jsonb('ai_config').$type<AIConfig>(),
   estimatedMinutes: integer('estimated_minutes'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (table) => [
+  index('lessons_module_id_idx').on(table.moduleId),
+]);
 
 // Relations
 export const domainsRelations = relations(domains, ({ many }) => ({
