@@ -8,6 +8,11 @@ import {
   GOAL_SETTING_PROMPT,
 } from '../prompts/mentor-prompts';
 import type { AgentState } from '../types';
+import {
+  sanitizeArray,
+  sanitizeRagContext,
+  sanitizeInput,
+} from '../utils/sanitize';
 
 // Type definitions for new methods
 export interface CareerGuidanceOptions {
@@ -73,12 +78,17 @@ export const mentorAgent = {
   }> {
     const model = getModelForAgent('mentor');
 
+    // Sanitize all user inputs before prompt formatting
+    const sanitizedGoals = sanitizeArray(state.metadata.goals as string[] || [], 10, 200);
+    const sanitizedInterests = sanitizeArray(state.userProfile.interests, 10, 100);
+    const sanitizedRagContext = sanitizeRagContext(state.ragContext);
+
     const systemPrompt = await systemPromptTemplate.format({
       level: state.userProfile.level,
       streak: state.metadata.currentStreak || 0,
-      goals: (state.metadata.goals as string[])?.join(', ') || 'Not specified',
-      interests: state.userProfile.interests.join(', ') || 'Not specified',
-      ragContext: state.ragContext || '',
+      goals: sanitizedGoals.join(', ') || 'Not specified',
+      interests: sanitizedInterests.join(', ') || 'Not specified',
+      ragContext: sanitizedRagContext,
     });
 
     const response = await model.invoke([
@@ -101,11 +111,17 @@ export const mentorAgent = {
       const model = getModelForAgent('mentor');
       const promptTemplate = PromptTemplate.fromTemplate(CAREER_GUIDANCE_PROMPT);
 
+      // Sanitize all inputs
+      const sanitizedCurrentSkills = sanitizeArray(options.currentSkills, 20, 100);
+      const sanitizedTargetRole = sanitizeInput(options.targetRole, 100);
+      const sanitizedExperienceLevel = sanitizeInput(options.experienceLevel, 20);
+      const sanitizedInterests = sanitizeArray(options.interests, 20, 100);
+
       const prompt = await promptTemplate.format({
-        currentSkills: options.currentSkills.join(', '),
-        targetRole: options.targetRole,
-        experienceLevel: options.experienceLevel,
-        interests: options.interests.join(', '),
+        currentSkills: sanitizedCurrentSkills.join(', '),
+        targetRole: sanitizedTargetRole,
+        experienceLevel: sanitizedExperienceLevel,
+        interests: sanitizedInterests.join(', '),
       });
 
       const response = await model.invoke([
@@ -130,10 +146,13 @@ export const mentorAgent = {
       const model = getModelForAgent('mentor');
       const promptTemplate = PromptTemplate.fromTemplate(MOTIVATION_PROMPT);
 
+      // Sanitize inputs
+      const sanitizedStrugglingAreas = sanitizeArray(context.strugglingAreas, 10, 100);
+
       const prompt = await promptTemplate.format({
         currentStreak: context.currentStreak,
         recentProgress: context.recentProgress,
-        strugglingAreas: context.strugglingAreas.join(', ') || 'None specified',
+        strugglingAreas: sanitizedStrugglingAreas.join(', ') || 'None specified',
         lastActiveDate: context.lastActiveDate.toISOString().split('T')[0],
       });
 
@@ -160,16 +179,22 @@ export const mentorAgent = {
       const model = getModelForAgent('mentor');
       const promptTemplate = PromptTemplate.fromTemplate(GOAL_SETTING_PROMPT);
 
+      // Sanitize all goal inputs and userId
+      const sanitizedShortGoals = sanitizeArray(goals.short, 10, 200);
+      const sanitizedMediumGoals = sanitizeArray(goals.medium, 10, 200);
+      const sanitizedLongGoals = sanitizeArray(goals.long, 10, 200);
+      const sanitizedUserId = sanitizeInput(userId, 100);
+
       const prompt = await promptTemplate.format({
-        shortTermGoals: goals.short.join('\n- ') || 'None specified',
-        mediumTermGoals: goals.medium.join('\n- ') || 'None specified',
-        longTermGoals: goals.long.join('\n- ') || 'None specified',
+        shortTermGoals: sanitizedShortGoals.join('\n- ') || 'None specified',
+        mediumTermGoals: sanitizedMediumGoals.join('\n- ') || 'None specified',
+        longTermGoals: sanitizedLongGoals.join('\n- ') || 'None specified',
       });
 
       const response = await model.invoke([
         new SystemMessage(prompt),
         new HumanMessage(
-          `Please help me refine my learning goals. User ID: ${userId}`
+          `Please help me refine my learning goals. User ID: ${sanitizedUserId}`
         ),
       ]);
 

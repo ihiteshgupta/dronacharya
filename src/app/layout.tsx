@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { TRPCProvider } from "@/lib/trpc/provider";
+import { env } from "@/lib/env";
+// Validate environment variables at startup
+import "@/lib/startup";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,7 +26,7 @@ export const metadata: Metadata = {
   authors: [{ name: "Margadeshaka", url: "https://margadeshaka.ai" }],
   creator: "Margadeshaka",
   publisher: "Margadeshaka",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://dronacharya.ai"),
+  metadataBase: new URL(env.NEXT_PUBLIC_APP_URL),
   icons: {
     icon: [
       { url: "/brand/favicon.svg", type: "image/svg+xml" },
@@ -67,6 +70,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        {/* Skip to main content link for keyboard navigation */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:shadow-lg"
+        >
+          Skip to main content
+        </a>
         <TRPCProvider>{children}</TRPCProvider>
       </body>
     </html>

@@ -2,6 +2,7 @@ import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatOpenAI } from '@langchain/openai';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { aiConfig, ragConfig } from './config';
+import { env } from '../env';
 
 // Lazy-loaded model instances (only created when first accessed)
 let _claudeModel: ChatAnthropic | null = null;
@@ -13,7 +14,7 @@ export function getClaudeModel(): ChatAnthropic {
     _claudeModel = new ChatAnthropic({
       model: aiConfig.primaryModel,
       maxTokens: aiConfig.maxTokens,
-      anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+      anthropicApiKey: env.ANTHROPIC_API_KEY,
     });
   }
   return _claudeModel;
@@ -21,10 +22,13 @@ export function getClaudeModel(): ChatAnthropic {
 
 export function getOpenAIModel(): ChatOpenAI {
   if (!_openaiModel) {
+    if (!env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not configured');
+    }
     _openaiModel = new ChatOpenAI({
       model: aiConfig.fallbackModel,
       maxTokens: aiConfig.maxTokens,
-      openAIApiKey: process.env.OPENAI_API_KEY,
+      openAIApiKey: env.OPENAI_API_KEY,
     });
   }
   return _openaiModel;
@@ -32,9 +36,12 @@ export function getOpenAIModel(): ChatOpenAI {
 
 export function getEmbeddings(): OpenAIEmbeddings {
   if (!_embeddings) {
+    if (!env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is required for embeddings');
+    }
     _embeddings = new OpenAIEmbeddings({
       model: ragConfig.embeddingModel,
-      openAIApiKey: process.env.OPENAI_API_KEY,
+      openAIApiKey: env.OPENAI_API_KEY,
     });
   }
   return _embeddings;

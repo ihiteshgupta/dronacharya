@@ -3,6 +3,13 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import { getModelForAgent } from '../models';
 import { TUTOR_SYSTEM_PROMPT } from '../prompts/tutor-prompts';
 import type { AgentState, TeachingMode } from '../types';
+import {
+  sanitizeLearningStyle,
+  sanitizeArray,
+  sanitizeRagContext,
+  sanitizeTopic,
+  sanitizeObjectives,
+} from '../utils/sanitize';
 
 const systemPromptTemplate = PromptTemplate.fromTemplate(TUTOR_SYSTEM_PROMPT);
 
@@ -58,14 +65,21 @@ export const tutorAgent = {
       state.messages.length
     );
 
+    // Sanitize all user inputs before prompt formatting
+    const sanitizedLearningStyle = sanitizeLearningStyle(state.userProfile.learningStyle);
+    const sanitizedStruggleAreas = sanitizeArray(state.userProfile.struggleAreas, 10, 100);
+    const sanitizedTopic = sanitizeTopic(state.lessonContext.topic);
+    const sanitizedObjectives = sanitizeObjectives(state.lessonContext.objectives);
+    const sanitizedRagContext = sanitizeRagContext(state.ragContext);
+
     const systemPrompt = await systemPromptTemplate.format({
       level: state.userProfile.level,
-      learningStyle: state.userProfile.learningStyle || 'adaptive',
-      struggleAreas: state.userProfile.struggleAreas.join(', ') || 'none identified',
-      topic: state.lessonContext.topic,
-      objectives: state.lessonContext.objectives.join(', '),
+      learningStyle: sanitizedLearningStyle,
+      struggleAreas: sanitizedStruggleAreas.join(', ') || 'none identified',
+      topic: sanitizedTopic,
+      objectives: sanitizedObjectives.join(', '),
       teachingMode: state.lessonContext.teachingMode.toUpperCase(),
-      ragContext: state.ragContext || 'No specific content loaded.',
+      ragContext: sanitizedRagContext,
     });
 
     const response = await model.invoke([

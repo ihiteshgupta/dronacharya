@@ -1,6 +1,6 @@
 # Database Migrations
 
-This directory contains Drizzle ORM migrations for LearnFlow AI.
+This directory contains Drizzle ORM migrations for Dronacharya.
 
 ## Commands
 
@@ -37,7 +37,7 @@ pnpm db:studio
 Ensure `DATABASE_URL` is set in `.env.local`:
 
 ```
-DATABASE_URL=postgresql://user:password@localhost:5432/learnflow
+DATABASE_URL=postgresql://user:password@localhost:5432/dronacharya
 ```
 
 ## Migration Files

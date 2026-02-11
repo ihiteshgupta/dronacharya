@@ -75,26 +75,26 @@ export function LevelProgress({
   return (
     <div className={cn('space-y-3', className)}>
       {/* Level Badge and Title */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           {/* Level Badge */}
           <div
             className={cn(
-              'relative flex items-center justify-center w-12 h-12 rounded-xl',
+              'relative flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl shrink-0',
               'bg-gradient-to-br shadow-lg',
               colorClass,
               isHighLevel && 'animate-level-glow'
             )}
           >
-            <span className="text-white font-bold text-lg">{level}</span>
+            <span className="text-white font-bold text-base sm:text-lg">{level}</span>
             {isHighLevel && (
-              <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-amber animate-pulse" />
+              <Sparkles className="absolute -top-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber animate-pulse" />
             )}
           </div>
 
           {/* Title */}
-          <div className="flex flex-col">
-            <span className="font-semibold text-foreground">{displayTitle}</span>
+          <div className="flex flex-col min-w-0">
+            <span className="font-semibold text-sm sm:text-base text-foreground truncate">{displayTitle}</span>
             <span className="text-xs text-muted-foreground">
               Level {level}
             </span>
@@ -102,13 +102,15 @@ export function LevelProgress({
         </div>
 
         {/* XP Counter */}
-        <div className="text-right">
-          <span className="text-sm font-bold text-foreground">
-            {currentXP.toLocaleString()}
-          </span>
-          <span className="text-sm text-muted-foreground">
-            {' / '}{requiredXP.toLocaleString()} XP
-          </span>
+        <div className="text-right shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-1">
+            <span className="text-xs sm:text-sm font-bold text-foreground tabular-nums">
+              {currentXP.toLocaleString()}
+            </span>
+            <span className="text-xs sm:text-sm text-muted-foreground tabular-nums">
+              {' / '}{requiredXP.toLocaleString()} XP
+            </span>
+          </div>
         </div>
       </div>
 
@@ -145,9 +147,9 @@ export function LevelProgress({
       </div>
 
       {/* Progress percentage */}
-      <div className="flex justify-between text-xs text-muted-foreground">
+      <div className="flex flex-col sm:flex-row justify-between gap-1 sm:gap-0 text-xs text-muted-foreground">
         <span>{Math.round(progress)}% complete</span>
-        <span>{(requiredXP - currentXP).toLocaleString()} XP to next level</span>
+        <span className="tabular-nums">{(requiredXP - currentXP).toLocaleString()} XP to next level</span>
       </div>
     </div>
   );

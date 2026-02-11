@@ -1,9 +1,10 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema/index';
+import { env } from '../env';
 
-// Check if DATABASE_URL is configured
-const connectionString = process.env.DATABASE_URL;
+// Use validated environment variable
+const connectionString = env.DATABASE_URL || 'mock';
 
 // Create a mock db for development without database
 const createMockDb = () => ({
@@ -37,16 +38,16 @@ type DrizzleDB = ReturnType<typeof drizzle<typeof schema>>;
 
 let db: DrizzleDB;
 
-if (connectionString) {
+if (connectionString === 'mock') {
+  console.warn('⚠️  Using mock database - data will not be persisted!');
+  // Mock database for development without DATABASE_URL
+   
+  db = createMockDb() as unknown as DrizzleDB;
+} else {
   const client = postgres(connectionString, {
-    max: Number(process.env.DATABASE_POOL_SIZE) || 10,
+    max: env.DATABASE_POOL_SIZE,
   });
   db = drizzle(client, { schema });
-} else {
-  console.warn('DATABASE_URL not configured - using mock database');
-  // Mock database for development without DATABASE_URL
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  db = createMockDb() as unknown as DrizzleDB;
 }
 
 export { db };

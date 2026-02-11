@@ -1,8 +1,8 @@
-# LearnFlow AI - UI/UX Audit & Brand Redesign
+# Dronacharya - UI/UX Audit & Brand Redesign
 
 ## Executive Summary
 
-This document provides a comprehensive UI/UX audit of LearnFlow AI and introduces a new brand identity designed to create an engaging, modern, and motivating learning experience.
+This document provides a comprehensive UI/UX audit of Dronacharya and introduces a new brand identity designed to create an engaging, modern, and motivating learning experience.
 
 ---
 
@@ -13,7 +13,7 @@ This document provides a comprehensive UI/UX audit of LearnFlow AI and introduce
 | Issue | Severity | Location | Description |
 |-------|----------|----------|-------------|
 | Monochromatic palette | High | Global | Current neutral-only colors lack energy and emotional engagement |
-| No brand personality | High | Header | Plain text logo "LearnFlow" with no icon or visual identity |
+| No brand personality | High | Header | Plain text logo "Dronacharya" with no icon or visual identity |
 | Inconsistent spacing | Medium | Dashboard | Cards and sections use varying gap sizes |
 | Missing visual hierarchy | Medium | Sidebar | All items have equal visual weight |
 | No microinteractions | Medium | Buttons | Buttons lack engaging hover/click feedback |
@@ -64,7 +64,7 @@ This document provides a comprehensive UI/UX audit of LearnFlow AI and introduce
 
 ```
    ╭─────────╮
-   │  ▲  ▲   │   LearnFlow
+   │  ▲  ▲   │   Dronacharya
    │   ╲╱    │   ──────────
    │  flow   │   AI
    ╰─────────╯

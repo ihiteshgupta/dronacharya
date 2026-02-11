@@ -63,56 +63,74 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const getIcon = (type: string) => {
     switch (type) {
       case 'course':
-        return <BookOpen className="h-4 w-4 mr-2 text-muted-foreground" />;
+        return <BookOpen className="h-4 w-4 mr-2 text-muted-foreground" aria-hidden="true" />;
       case 'path':
-        return <Route className="h-4 w-4 mr-2 text-muted-foreground" />;
+        return <Route className="h-4 w-4 mr-2 text-muted-foreground" aria-hidden="true" />;
       case 'lesson':
-        return <FileText className="h-4 w-4 mr-2 text-muted-foreground" />;
+        return <FileText className="h-4 w-4 mr-2 text-muted-foreground" aria-hidden="true" />;
       default:
-        return <Search className="h-4 w-4 mr-2 text-muted-foreground" />;
+        return <Search className="h-4 w-4 mr-2 text-muted-foreground" aria-hidden="true" />;
     }
   };
+
+  // Calculate total results for screen readers
+  const totalResults = searchResults?.results.length || 0;
+  const resultsAnnouncement = isLoading
+    ? 'Searching...'
+    : totalResults > 0
+      ? `${totalResults} result${totalResults === 1 ? '' : 's'} found`
+      : debouncedQuery.length > 0
+        ? `No results found for "${debouncedQuery}"`
+        : '';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] p-0">
         <DialogHeader className="p-4 pb-0">
-          <DialogTitle className="sr-only">Search</DialogTitle>
+          <DialogTitle className="sr-only">Search courses, paths, and lessons</DialogTitle>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <Input
               placeholder="Search courses, paths, lessons..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-10"
               autoFocus
+              aria-label="Search"
+              aria-describedby="search-results-status"
             />
           </div>
         </DialogHeader>
 
+        {/* Screen reader status announcements */}
+        <div id="search-results-status" className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {resultsAnnouncement}
+        </div>
+
         <ScrollArea className="max-h-[400px]">
           <div className="p-4 pt-2">
             {isLoading && debouncedQuery.length > 0 && (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <div className="flex items-center justify-center py-6" role="status" aria-label="Loading search results">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
+                <span className="sr-only">Loading search results...</span>
               </div>
             )}
 
             {!isLoading && debouncedQuery.length > 0 && searchResults?.results.length === 0 && (
-              <div className="text-center py-6 text-muted-foreground">
+              <div className="text-center py-6 text-muted-foreground" role="status">
                 No results found for "{debouncedQuery}"
               </div>
             )}
 
             {/* Search Results */}
             {!isLoading && debouncedQuery.length > 0 && searchResults && searchResults.results.length > 0 && (
-              <div className="space-y-4">
+              <div className="space-y-4" role="region" aria-label="Search results">
                 {searchResults.counts.courses > 0 && (
                   <div>
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                      Courses
+                      Courses ({searchResults.counts.courses})
                     </h4>
-                    <div className="space-y-1">
+                    <div className="space-y-1" role="list">
                       {searchResults.results
                         .filter(r => r.type === 'course')
                         .map((result) => (
@@ -121,8 +139,9 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                             onClick={() => handleSelect('course', result.id)}
                             className={cn(
                               'flex items-center w-full px-3 py-2 text-sm rounded-md',
-                              'hover:bg-muted transition-colors text-left'
+                              'hover:bg-muted transition-colors text-left min-h-[44px]'
                             )}
+                            role="listitem"
                           >
                             {getIcon('course')}
                             <span>{result.name}</span>
@@ -135,9 +154,9 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                 {searchResults.counts.paths > 0 && (
                   <div>
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                      Learning Paths
+                      Learning Paths ({searchResults.counts.paths})
                     </h4>
-                    <div className="space-y-1">
+                    <div className="space-y-1" role="list">
                       {searchResults.results
                         .filter(r => r.type === 'path')
                         .map((result) => (
@@ -146,8 +165,9 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                             onClick={() => handleSelect('path', result.id)}
                             className={cn(
                               'flex items-center w-full px-3 py-2 text-sm rounded-md',
-                              'hover:bg-muted transition-colors text-left'
+                              'hover:bg-muted transition-colors text-left min-h-[44px]'
                             )}
+                            role="listitem"
                           >
                             {getIcon('path')}
                             <span>{result.name}</span>
@@ -160,9 +180,9 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                 {searchResults.counts.lessons > 0 && (
                   <div>
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                      Lessons
+                      Lessons ({searchResults.counts.lessons})
                     </h4>
-                    <div className="space-y-1">
+                    <div className="space-y-1" role="list">
                       {searchResults.results
                         .filter(r => r.type === 'lesson')
                         .map((result) => (
@@ -171,8 +191,9 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                             onClick={() => handleSelect('lesson', result.id)}
                             className={cn(
                               'flex items-center w-full px-3 py-2 text-sm rounded-md',
-                              'hover:bg-muted transition-colors text-left'
+                              'hover:bg-muted transition-colors text-left min-h-[44px]'
                             )}
+                            role="listitem"
                           >
                             {getIcon('lesson')}
                             <span>{result.name}</span>
@@ -186,21 +207,22 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
             {/* Popular Content (when no search query) */}
             {debouncedQuery.length === 0 && popularContent && (
-              <div className="space-y-4">
+              <div className="space-y-4" role="region" aria-label="Popular content">
                 {popularContent.paths.length > 0 && (
                   <div>
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                       Featured Paths
                     </h4>
-                    <div className="space-y-1">
+                    <div className="space-y-1" role="list">
                       {popularContent.paths.map((path) => (
                         <button
                           key={`popular-path-${path.id}`}
                           onClick={() => handleSelect('path', path.id)}
                           className={cn(
                             'flex items-center w-full px-3 py-2 text-sm rounded-md',
-                            'hover:bg-muted transition-colors text-left'
+                            'hover:bg-muted transition-colors text-left min-h-[44px]'
                           )}
+                          role="listitem"
                         >
                           {getIcon('path')}
                           <span>{path.name}</span>
@@ -215,15 +237,16 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                       Popular Courses
                     </h4>
-                    <div className="space-y-1">
+                    <div className="space-y-1" role="list">
                       {popularContent.courses.map((course) => (
                         <button
                           key={`popular-course-${course.id}`}
                           onClick={() => handleSelect('course', course.id)}
                           className={cn(
                             'flex items-center w-full px-3 py-2 text-sm rounded-md',
-                            'hover:bg-muted transition-colors text-left'
+                            'hover:bg-muted transition-colors text-left min-h-[44px]'
                           )}
+                          role="listitem"
                         >
                           {getIcon('course')}
                           <span>{course.name}</span>
@@ -235,7 +258,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
                 {popularContent.paths.length === 0 && popularContent.courses.length === 0 && (
                   <div className="text-center py-6 text-muted-foreground">
-                    <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <Search className="h-8 w-8 mx-auto mb-2 opacity-50" aria-hidden="true" />
                     <p>Start typing to search...</p>
                   </div>
                 )}

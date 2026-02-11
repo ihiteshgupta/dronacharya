@@ -1,4 +1,4 @@
-# LearnFlow AI Implementation Plan
+# Dronacharya Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
@@ -15,16 +15,16 @@
 ### Task 1: Initialize Next.js Project
 
 **Files:**
-- Create: `learnflow-ai/package.json`
-- Create: `learnflow-ai/next.config.ts`
-- Create: `learnflow-ai/tsconfig.json`
-- Create: `learnflow-ai/.gitignore`
+- Create: `dronacharya/package.json`
+- Create: `dronacharya/next.config.ts`
+- Create: `dronacharya/tsconfig.json`
+- Create: `dronacharya/.gitignore`
 
 **Step 1: Create Next.js 15 project**
 
 Run:
 ```bash
-cd ~/learnflow-ai
+cd ~/dronacharya
 pnpm create next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --turbopack
 ```
 
@@ -34,7 +34,7 @@ Expected: Project scaffolded with Next.js 15
 
 Run:
 ```bash
-cd ~/learnflow-ai && pnpm dev
+cd ~/dronacharya && pnpm dev
 ```
 
 Expected: Server starts at localhost:3000
@@ -42,7 +42,7 @@ Expected: Server starts at localhost:3000
 **Step 3: Commit**
 
 ```bash
-cd ~/learnflow-ai
+cd ~/dronacharya
 git init
 git add .
 git commit -m "chore: initialize Next.js 15 project with TypeScript and Tailwind"
@@ -53,13 +53,13 @@ git commit -m "chore: initialize Next.js 15 project with TypeScript and Tailwind
 ### Task 2: Install Core Dependencies
 
 **Files:**
-- Modify: `learnflow-ai/package.json`
+- Modify: `dronacharya/package.json`
 
 **Step 1: Install UI and state dependencies**
 
 Run:
 ```bash
-cd ~/learnflow-ai
+cd ~/dronacharya
 pnpm add @tanstack/react-query zustand react-hook-form @hookform/resolvers zod framer-motion lucide-react
 ```
 
@@ -67,7 +67,7 @@ pnpm add @tanstack/react-query zustand react-hook-form @hookform/resolvers zod f
 
 Run:
 ```bash
-cd ~/learnflow-ai
+cd ~/dronacharya
 pnpm add @trpc/server @trpc/client @trpc/react-query @trpc/next hono @hono/node-server drizzle-orm postgres dotenv
 ```
 
@@ -75,7 +75,7 @@ pnpm add @trpc/server @trpc/client @trpc/react-query @trpc/next hono @hono/node-
 
 Run:
 ```bash
-cd ~/learnflow-ai
+cd ~/dronacharya
 pnpm add ai @langchain/core @langchain/anthropic @langchain/openai @langchain/langgraph @qdrant/js-client-rest
 ```
 
@@ -83,7 +83,7 @@ pnpm add ai @langchain/core @langchain/anthropic @langchain/openai @langchain/la
 
 Run:
 ```bash
-cd ~/learnflow-ai
+cd ~/dronacharya
 pnpm add -D drizzle-kit vitest @vitejs/plugin-react @testing-library/react @testing-library/jest-dom @playwright/test msw typescript @types/node @types/react
 ```
 
@@ -99,15 +99,15 @@ git commit -m "chore: add core dependencies for UI, backend, and AI"
 ### Task 3: Setup shadcn/ui
 
 **Files:**
-- Create: `learnflow-ai/components.json`
-- Create: `learnflow-ai/src/components/ui/button.tsx`
-- Modify: `learnflow-ai/src/app/globals.css`
+- Create: `dronacharya/components.json`
+- Create: `dronacharya/src/components/ui/button.tsx`
+- Modify: `dronacharya/src/app/globals.css`
 
 **Step 1: Initialize shadcn/ui**
 
 Run:
 ```bash
-cd ~/learnflow-ai
+cd ~/dronacharya
 pnpm dlx shadcn@latest init -d
 ```
 
@@ -117,7 +117,7 @@ Select: New York style, Zinc color, CSS variables: yes
 
 Run:
 ```bash
-cd ~/learnflow-ai
+cd ~/dronacharya
 pnpm dlx shadcn@latest add button card input label tabs progress avatar badge scroll-area tooltip dialog dropdown-menu separator slider switch textarea alert
 ```
 
@@ -142,9 +142,9 @@ git commit -m "chore: setup shadcn/ui with essential components"
 ### Task 4: Setup Environment Configuration
 
 **Files:**
-- Create: `learnflow-ai/.env.example`
-- Create: `learnflow-ai/.env.local`
-- Create: `learnflow-ai/src/lib/config/env.ts`
+- Create: `dronacharya/.env.example`
+- Create: `dronacharya/.env.local`
+- Create: `dronacharya/src/lib/config/env.ts`
 
 **Step 1: Create environment schema**
 
@@ -209,7 +209,7 @@ NODE_ENV=development
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 # Database
-DATABASE_URL=postgresql://user:password@localhost:5432/learnflow
+DATABASE_URL=postgresql://user:password@localhost:5432/dronacharya
 DATABASE_POOL_SIZE=10
 
 # Redis
@@ -262,11 +262,11 @@ git commit -m "chore: setup environment configuration with Zod validation"
 ### Task 5: Setup Database Schema (Core Tables)
 
 **Files:**
-- Create: `learnflow-ai/src/lib/db/index.ts`
-- Create: `learnflow-ai/src/lib/db/schema/users.ts`
-- Create: `learnflow-ai/src/lib/db/schema/organizations.ts`
-- Create: `learnflow-ai/src/lib/db/schema/index.ts`
-- Create: `learnflow-ai/drizzle.config.ts`
+- Create: `dronacharya/src/lib/db/index.ts`
+- Create: `dronacharya/src/lib/db/schema/users.ts`
+- Create: `dronacharya/src/lib/db/schema/organizations.ts`
+- Create: `dronacharya/src/lib/db/schema/index.ts`
+- Create: `dronacharya/drizzle.config.ts`
 
 **Step 1: Create database connection**
 
@@ -470,7 +470,7 @@ git commit -m "feat: setup database schema for users and organizations"
 ### Task 6: Setup Database Schema (Content Tables)
 
 **Files:**
-- Create: `learnflow-ai/src/lib/db/schema/content.ts`
+- Create: `dronacharya/src/lib/db/schema/content.ts`
 
 **Step 1: Create content schema**
 
@@ -635,8 +635,8 @@ git commit -m "feat: add content schema for domains, tracks, courses, modules, l
 ### Task 7: Setup Database Schema (Progress & Gamification)
 
 **Files:**
-- Create: `learnflow-ai/src/lib/db/schema/progress.ts`
-- Create: `learnflow-ai/src/lib/db/schema/gamification.ts`
+- Create: `dronacharya/src/lib/db/schema/progress.ts`
+- Create: `dronacharya/src/lib/db/schema/gamification.ts`
 
 **Step 1: Create progress schema**
 
@@ -807,8 +807,8 @@ git commit -m "feat: add progress and gamification schemas"
 ### Task 8: Setup Database Schema (Certifications & AI)
 
 **Files:**
-- Create: `learnflow-ai/src/lib/db/schema/certifications.ts`
-- Create: `learnflow-ai/src/lib/db/schema/ai.ts`
+- Create: `dronacharya/src/lib/db/schema/certifications.ts`
+- Create: `dronacharya/src/lib/db/schema/ai.ts`
 
 **Step 1: Create certifications schema**
 
@@ -991,7 +991,7 @@ export * from './ai';
 
 Run:
 ```bash
-cd ~/learnflow-ai
+cd ~/dronacharya
 pnpm db:generate
 ```
 
@@ -1011,10 +1011,10 @@ git commit -m "feat: add certification and AI session schemas, generate migratio
 ### Task 9: Setup tRPC Infrastructure
 
 **Files:**
-- Create: `learnflow-ai/src/lib/trpc/trpc.ts`
-- Create: `learnflow-ai/src/lib/trpc/root.ts`
-- Create: `learnflow-ai/src/lib/trpc/context.ts`
-- Create: `learnflow-ai/src/app/api/trpc/[trpc]/route.ts`
+- Create: `dronacharya/src/lib/trpc/trpc.ts`
+- Create: `dronacharya/src/lib/trpc/root.ts`
+- Create: `dronacharya/src/lib/trpc/context.ts`
+- Create: `dronacharya/src/app/api/trpc/[trpc]/route.ts`
 
 **Step 1: Create tRPC context**
 
@@ -1170,7 +1170,7 @@ git commit -m "feat: setup tRPC infrastructure with context and routing"
 ### Task 10: Create User Router
 
 **Files:**
-- Create: `learnflow-ai/src/lib/trpc/routers/user.ts`
+- Create: `dronacharya/src/lib/trpc/routers/user.ts`
 
 **Step 1: Write user router tests**
 
@@ -1311,7 +1311,7 @@ git commit -m "feat: add user router with profile and settings endpoints"
 ### Task 11: Create Course Router
 
 **Files:**
-- Create: `learnflow-ai/src/lib/trpc/routers/course.ts`
+- Create: `dronacharya/src/lib/trpc/routers/course.ts`
 
 **Step 1: Create course router**
 
@@ -1536,8 +1536,8 @@ git commit -m "feat: add course router with tracks, courses, lessons, enrollment
 ### Task 12: Create Progress Router
 
 **Files:**
-- Create: `learnflow-ai/src/lib/trpc/routers/progress.ts`
-- Create: `learnflow-ai/src/lib/utils/xp-calculator.ts`
+- Create: `dronacharya/src/lib/trpc/routers/progress.ts`
+- Create: `dronacharya/src/lib/utils/xp-calculator.ts`
 
 **Step 1: Create XP calculator utility**
 
@@ -1780,8 +1780,8 @@ git commit -m "feat: add progress router with XP calculation"
 ### Task 13: Create Gamification Router
 
 **Files:**
-- Create: `learnflow-ai/src/lib/trpc/routers/gamification.ts`
-- Create: `learnflow-ai/src/lib/utils/streak-calculator.ts`
+- Create: `dronacharya/src/lib/trpc/routers/gamification.ts`
+- Create: `dronacharya/src/lib/utils/streak-calculator.ts`
 
 **Step 1: Create streak calculator**
 
@@ -2109,8 +2109,8 @@ git commit -m "feat: add gamification router with streaks, leaderboards, achieve
 ### Task 14: Setup tRPC Client
 
 **Files:**
-- Create: `learnflow-ai/src/lib/trpc/client.ts`
-- Create: `learnflow-ai/src/lib/trpc/provider.tsx`
+- Create: `dronacharya/src/lib/trpc/client.ts`
+- Create: `dronacharya/src/lib/trpc/provider.tsx`
 
 **Step 1: Create tRPC client**
 
@@ -2189,7 +2189,7 @@ import { TRPCProvider } from '@/lib/trpc/provider';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'LearnFlow AI',
+  title: 'Dronacharya',
   description: 'Interactive AI-powered learning platform',
 };
 

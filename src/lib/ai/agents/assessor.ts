@@ -3,6 +3,13 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import { getModelForAgent } from '../models';
 import { ASSESSOR_SYSTEM_PROMPT, QUESTION_GENERATION_PROMPT, ANSWER_EVALUATION_PROMPT } from '../prompts/assessor-prompts';
 import type { AgentState } from '../types';
+import {
+  sanitizeArray,
+  sanitizeRagContext,
+  sanitizeTopic,
+  sanitizeObjectives,
+  sanitizeInput,
+} from '../utils/sanitize';
 
 const systemPromptTemplate = PromptTemplate.fromTemplate(ASSESSOR_SYSTEM_PROMPT);
 const questionGenTemplate = PromptTemplate.fromTemplate(QUESTION_GENERATION_PROMPT);
@@ -27,13 +34,19 @@ export const assessorAgent = {
   }> {
     const model = getModelForAgent('assessor');
 
+    // Sanitize all user inputs before prompt formatting
+    const sanitizedStruggleAreas = sanitizeArray(state.userProfile.struggleAreas, 10, 100);
+    const sanitizedTopic = sanitizeTopic(state.lessonContext.topic);
+    const sanitizedObjectives = sanitizeObjectives(state.lessonContext.objectives);
+    const sanitizedRagContext = sanitizeRagContext(state.ragContext);
+
     const systemPrompt = await systemPromptTemplate.format({
       level: state.userProfile.level,
       avgScore: state.userProfile.avgScore,
-      struggleAreas: state.userProfile.struggleAreas.join(', ') || 'none',
-      topic: state.lessonContext.topic,
-      objectives: state.lessonContext.objectives.join(', '),
-      ragContext: state.ragContext || 'No specific content loaded.',
+      struggleAreas: sanitizedStruggleAreas.join(', ') || 'none',
+      topic: sanitizedTopic,
+      objectives: sanitizedObjectives.join(', '),
+      ragContext: sanitizedRagContext,
     });
 
     const response = await model.invoke([
@@ -61,12 +74,17 @@ export const assessorAgent = {
     const model = getModelForAgent('assessor');
     const { count = 5, difficulty = 5, types = ['multiple_choice', 'code_output'] } = options;
 
+    // Sanitize inputs
+    const sanitizedTopic = sanitizeTopic(topic);
+    const sanitizedObjectives = sanitizeObjectives(objectives);
+    const sanitizedTypes = sanitizeArray(types, 5, 50);
+
     const prompt = await questionGenTemplate.format({
       count,
-      topic,
+      topic: sanitizedTopic,
       difficulty,
-      objectives: objectives.join(', '),
-      types: types.join(', '),
+      objectives: sanitizedObjectives.join(', '),
+      types: sanitizedTypes.join(', '),
     });
 
     const response = await model.invoke([
@@ -99,10 +117,15 @@ export const assessorAgent = {
   }> {
     const model = getModelForAgent('assessor');
 
+    // Sanitize all inputs - longer limits for questions/answers
+    const sanitizedQuestion = sanitizeInput(question, 1000);
+    const sanitizedStudentAnswer = sanitizeInput(studentAnswer, 2000);
+    const sanitizedCorrectAnswer = sanitizeInput(correctAnswer, 2000);
+
     const prompt = await answerEvalTemplate.format({
-      question,
-      answer: studentAnswer,
-      correctAnswer,
+      question: sanitizedQuestion,
+      answer: sanitizedStudentAnswer,
+      correctAnswer: sanitizedCorrectAnswer,
       maxPoints,
     });
 

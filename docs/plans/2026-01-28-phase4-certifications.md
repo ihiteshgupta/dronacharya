@@ -184,7 +184,7 @@ Replace mock data with real tRPC queries. Add download and share functionality.
 
 **LinkedIn Share URL:**
 ```
-https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name={courseName}&organizationName=LearnFlow&issueYear={year}&issueMonth={month}&certUrl={verifyUrl}&certId={credentialId}
+https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name={courseName}&organizationName=Dronacharya&issueYear={year}&issueMonth={month}&certUrl={verifyUrl}&certId={credentialId}
 ```
 
 **Commit message:** `feat: connect certifications page to tRPC with download and share`

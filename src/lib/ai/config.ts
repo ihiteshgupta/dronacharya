@@ -1,4 +1,4 @@
-import { env } from '@/lib/config/env';
+import { env } from '@/lib/env';
 
 export const aiConfig = {
   primaryModel: env.AI_MODEL_PRIMARY,

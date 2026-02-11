@@ -36,8 +36,8 @@ resource "aws_rds_cluster" "main" {
   cluster_identifier     = "${var.cluster_name}-db"
   engine                 = "aurora-postgresql"
   engine_version         = "15.4"
-  database_name          = "learnflow"
-  master_username        = "learnflow_admin"
+  database_name          = "dronacharya"
+  master_username        = "dronacharya_admin"
   master_password        = random_password.db_password.result
 
   db_subnet_group_name   = aws_db_subnet_group.main.name

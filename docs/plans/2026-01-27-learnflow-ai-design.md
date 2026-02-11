@@ -1,4 +1,4 @@
-# LearnFlow AI - Interactive Agent-Based LMS
+# Dronacharya - Interactive Agent-Based LMS
 
 ## Design Document
 
@@ -32,7 +32,7 @@
 
 ### 1.1 Vision
 
-LearnFlow AI is an interactive, AI-driven Learning Management System that replaces passive video consumption with active AI-guided learning. Students don't watch someone code - they think through problems with an AI tutor that adapts to their understanding.
+Dronacharya is an interactive, AI-driven Learning Management System that replaces passive video consumption with active AI-guided learning. Students don't watch someone code - they think through problems with an AI tutor that adapts to their understanding.
 
 ### 1.2 Core Philosophy
 
@@ -560,7 +560,7 @@ ai_messages           → Individual messages
 ### 12.1 Project Structure
 
 ```
-learnflow-ai/
+dronacharya/
 ├── app/
 │   ├── (auth)/           # Login, register, onboarding
 │   ├── (dashboard)/      # Learner dashboard, courses

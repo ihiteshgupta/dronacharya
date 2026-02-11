@@ -26,7 +26,7 @@ resource "aws_security_group" "redis" {
 # ElastiCache Redis
 resource "aws_elasticache_replication_group" "main" {
   replication_group_id = "${var.cluster_name}-redis"
-  description          = "Redis cluster for LearnFlow"
+  description          = "Redis cluster for Dronacharya"
 
   node_type            = var.redis_node_type
   num_cache_clusters   = var.redis_num_nodes

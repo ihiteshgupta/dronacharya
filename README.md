@@ -34,7 +34,8 @@ AI-powered learning platform with agentic workflows, gamification, and tiered ce
 - Node.js 20+
 - pnpm 9+
 - PostgreSQL 15+
-- Qdrant (optional, for RAG features)
+- Redis 8+ (for rate limiting)
+- Qdrant (optional for local dev, required for production RAG features) - See [Qdrant Setup Guide](./docs/QDRANT_SETUP.md)
 
 ### Setup
 
@@ -59,14 +60,26 @@ pnpm dev
 ### Environment Variables
 
 ```bash
+# Database
 DATABASE_URL=postgresql://user:pass@localhost:5432/dronacharya
+
+# Redis (for rate limiting)
+REDIS_URL=redis://localhost:6379
+
+# Authentication
 NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=<random-secret>
+NEXTAUTH_SECRET=<random-secret-32-chars>
+
+# AI APIs
 ANTHROPIC_API_KEY=sk-ant-...
 OPENAI_API_KEY=sk-...
-QDRANT_URL=http://localhost:6333      # optional
-QDRANT_API_KEY=                        # optional
+
+# Vector DB (optional for local, required for production)
+QDRANT_URL=http://localhost:6333      # or Qdrant Cloud URL
+QDRANT_API_KEY=                        # required for Qdrant Cloud
 ```
+
+See [QDRANT_SETUP.md](./docs/QDRANT_SETUP.md) for detailed Qdrant configuration.
 
 ## Development
 

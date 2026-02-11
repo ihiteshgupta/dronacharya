@@ -32,7 +32,7 @@ In `package.json`, add these scripts:
 
 **Step 3: Verify scripts are valid**
 
-Run: `cd /Users/hitesh.gupta/personal-projects/learnflow-ai && pnpm test:unit --help`
+Run: `cd /Users/hitesh.gupta/personal-projects/dronacharya && pnpm test:unit --help`
 Expected: vitest help output (not "script not found")
 
 **Step 4: Commit**
@@ -684,7 +684,7 @@ AI-powered learning platform with agentic workflows. Named after the legendary t
 ```bash
 # Clone and install
 git clone <repo-url>
-cd learnflow-ai
+cd dronacharya
 pnpm install
 
 # Start infrastructure
